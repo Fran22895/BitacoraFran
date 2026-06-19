@@ -76,6 +76,7 @@ function normalizeTrip(trip: Trip): Trip {
   return {
     ...trip,
     invitations: trip.invitations ?? [],
+    restaurants: trip.restaurants ?? [],
   }
 }
 
@@ -135,6 +136,7 @@ function createEmptyTrip(draft: TripDraft, owner: UserProfile, id = createId('tr
     itineraryDays: [],
     itineraryItems: [],
     activities: [],
+    restaurants: [],
     contacts: [],
     insurances: [],
     documents: [],

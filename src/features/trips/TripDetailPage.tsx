@@ -14,6 +14,7 @@ import MapIcon from '@mui/icons-material/Map'
 import NoteAltIcon from '@mui/icons-material/NoteAlt'
 import PeopleIcon from '@mui/icons-material/People'
 import PhoneIcon from '@mui/icons-material/Phone'
+import RestaurantIcon from '@mui/icons-material/Restaurant'
 import ShieldIcon from '@mui/icons-material/Shield'
 import {
   Alert,
@@ -44,7 +45,7 @@ import {
 } from '../../domain/constants'
 import { resolveCoordinates } from '../../domain/maps'
 import { canAssignRole, getAssignableRoles, getPermissionsForTrip } from '../../domain/permissions'
-import { accommodationSchema, activitySchema, expenseSchema, flightSchema, tripInvitationSchema } from '../../domain/schemas'
+import { accommodationSchema, activitySchema, expenseSchema, flightSchema, restaurantSchema, tripInvitationSchema } from '../../domain/schemas'
 import type {
   Accommodation,
   Activity,
@@ -55,6 +56,7 @@ import type {
   ItineraryDay,
   ItineraryItem,
   JournalEntry,
+  Restaurant,
   TravelDocument,
   TripInvitation,
   TripMember,
@@ -357,6 +359,18 @@ export function TripDetailPage() {
     },
     { name: 'notes', label: 'Notas', type: 'multiline', gridSpan: 12 },
   ]
+  const restaurantFields: FieldConfig[] = [
+    { name: 'dayId', label: 'Dia del itinerario', type: 'select', options: dayOptions },
+    { name: 'name', label: 'Restaurante' },
+    { name: 'cuisine', label: 'Tipo de cocina' },
+    { name: 'location', label: 'Ubicacion', gridSpan: 12 },
+    { name: 'googleMapsUrl', label: 'Google Maps', type: 'url', gridSpan: 12 },
+    ...moneyFields('averagePrice', 'Precio medio'),
+    { name: 'hasReservation', label: 'Tenemos reserva', type: 'boolean' },
+    { name: 'reservationAt', label: 'Fecha y hora de reserva', type: 'datetime-local' },
+    { name: 'bookingReference', label: 'Referencia / nombre de reserva', gridSpan: 12 },
+    { name: 'notes', label: 'Notas', type: 'multiline', gridSpan: 12 },
+  ]
 
   const saveTrip = (draft: TripDraft) => {
     updateTrip(trip.id, draft)
@@ -455,6 +469,7 @@ export function TripDetailPage() {
             <Tab label="Vehiculo" />
             <Tab label="Alojamientos" />
             <Tab label="Itinerario" />
+            <Tab label="Restaurantes" />
             <Tab label="Actividades" />
             <Tab label="Contactos" />
             <Tab label="Diario" />
@@ -728,6 +743,72 @@ export function TripDetailPage() {
         )}
 
         {tab === 5 && (
+          <EntitySection<Restaurant>
+            title="Restaurantes"
+            description="Reservas, ubicaciones y precio medio asociados al itinerario."
+            icon={RestaurantIcon}
+            items={trip.restaurants}
+            fields={restaurantFields}
+            defaultValues={{
+              dayId: trip.itineraryDays[0]?.id ?? '',
+              name: '',
+              cuisine: '',
+              location: '',
+              googleMapsUrl: '',
+              averagePrice: { amount: 0, currency: trip.baseCurrency, conversionRate: 1 },
+              hasReservation: false,
+              reservationAt: '',
+              bookingReference: '',
+              notes: '',
+            }}
+            canEdit={canEdit && trip.itineraryDays.length > 0}
+            schema={restaurantSchema}
+            addLabel="Anadir restaurante"
+            emptyLabel={trip.itineraryDays.length === 0 ? 'Crea primero un dia del itinerario.' : 'Sin restaurantes.'}
+            onCreate={(values) => addTripItem(trip.id, 'restaurants', values as Omit<Restaurant, 'id' | 'tripId'>)}
+            onUpdate={(id, values) =>
+              updateTripItem(trip.id, 'restaurants', id, values as Partial<Omit<Restaurant, 'id' | 'tripId'>>)
+            }
+            onDelete={(id) => deleteTripItem(trip.id, 'restaurants', id)}
+            renderItem={(restaurant) => {
+              const day = trip.itineraryDays.find((candidate) => candidate.id === restaurant.dayId)
+
+              return (
+                <Stack spacing={0.75}>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Typography variant="subtitle1" sx={{ overflowWrap: 'anywhere' }}>
+                      {restaurant.name}
+                    </Typography>
+                    {restaurant.cuisine && <Chip size="small" label={restaurant.cuisine} />}
+                    <Chip
+                      size="small"
+                      label={restaurant.hasReservation ? 'Reservado' : 'Sin reserva'}
+                      color={restaurant.hasReservation ? 'success' : 'default'}
+                    />
+                  </Stack>
+                  <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+                    {(day ? `${day.date} | ${day.title}` : 'Sin dia')} | {restaurant.location} | Precio medio:{' '}
+                    <MoneyText value={restaurant.averagePrice} currency={trip.baseCurrency} />
+                  </Typography>
+                  {restaurant.reservationAt && (
+                    <Typography variant="body2" color="text.secondary">
+                      Reserva: {cleanDateTime(restaurant.reservationAt)}
+                      {restaurant.bookingReference ? ` | ${restaurant.bookingReference}` : ''}
+                    </Typography>
+                  )}
+                  {restaurant.notes && (
+                    <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+                      {restaurant.notes}
+                    </Typography>
+                  )}
+                  <GoogleMapsButton url={restaurant.googleMapsUrl} />
+                </Stack>
+              )
+            }}
+          />
+        )}
+
+        {tab === 6 && (
           <Stack spacing={2}>
             <EntitySection<Activity>
               title="Actividades extra"
@@ -795,7 +876,7 @@ export function TripDetailPage() {
           </Stack>
         )}
 
-        {tab === 6 && (
+        {tab === 7 && (
           <Stack spacing={2}>
             <EntitySection<Contact>
               title="Telefonos de interes"
@@ -896,7 +977,7 @@ export function TripDetailPage() {
           </Stack>
         )}
 
-        {tab === 7 && (
+        {tab === 8 && (
           <Stack spacing={2}>
             <EntitySection<JournalEntry>
               title="Diario de bitacora"

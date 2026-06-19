@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+.tools
 dist
 dist-ssr
 *.local
@@ -26,3 +27,4 @@ supabase/.temp
 *.sw?
 
 .vercel
+.env*

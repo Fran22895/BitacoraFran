@@ -88,6 +88,15 @@ export function TripPdfDocument({ trip }: TripPdfDocumentProps) {
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Restaurantes</Text>
+          {trip.restaurants.map((restaurant) => (
+            <Text key={restaurant.id} style={styles.row}>
+              {restaurant.name} | {restaurant.location} | {restaurant.hasReservation ? 'Reservado' : 'Sin reserva'}
+            </Text>
+          ))}
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Telefonos de interes</Text>
           {trip.contacts.map((contact) => (
             <Text key={contact.id} style={styles.row}>

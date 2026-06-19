@@ -17,6 +17,7 @@ Supabase usa PostgreSQL con RLS activado. El archivo `supabase/schema.sql` crea 
 - `itinerary_days`: dias del itinerario.
 - `itinerary_items`: puntos visitables.
 - `activities`: actividades opcionales con sobrecoste.
+- `restaurants`: restaurantes asociados a un dia del itinerario, precio medio y reserva.
 - `contacts`: telefonos de interes.
 - `insurances`: seguros separados.
 - `documents`: documentos y vouchers.
@@ -31,6 +32,7 @@ Las referencias geograficas pueden guardar coordenadas manuales y enlaces de Goo
 - `accommodations`: `address`, `google_maps_url`.
 - `itinerary_items`: `latitude`, `longitude`, `google_maps_url`.
 - `activities`: `location`, `google_maps_url`.
+- `restaurants`: `location`, `google_maps_url`.
 - `contacts`: `address`, `google_maps_url`.
 
 La app usa las coordenadas manuales como fuente principal. Si faltan y el enlace largo de Google Maps contiene coordenadas, intenta extraerlas para pintar el punto en el mapa.

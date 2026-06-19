@@ -11,6 +11,7 @@ import type {
   ItineraryItem,
   JournalEntry,
   MoneyAmount,
+  Restaurant,
   TravelDocument,
   Trip,
   TripCollectionItem,
@@ -155,6 +156,7 @@ function tripFromDb(row: DbRecord): Omit<
   | 'itineraryDays'
   | 'itineraryItems'
   | 'activities'
+  | 'restaurants'
   | 'contacts'
   | 'insurances'
   | 'documents'
@@ -451,6 +453,37 @@ const collectionMappers = {
       notes: optionalText(row.notes),
     }),
   } satisfies CollectionMapper<Activity>,
+  restaurants: {
+    table: 'restaurants',
+    defaultOrder: { column: 'reservation_at', ascending: true },
+    toDb: (item: Partial<Restaurant>) => ({
+      ...baseItemDb(item),
+      ...(item.dayId !== undefined ? { day_id: item.dayId } : {}),
+      ...(item.name !== undefined ? { name: item.name } : {}),
+      ...(item.cuisine !== undefined ? { cuisine: item.cuisine } : {}),
+      ...(item.location !== undefined ? { location: item.location } : {}),
+      ...(item.googleMapsUrl !== undefined ? { google_maps_url: item.googleMapsUrl } : {}),
+      ...(item.averagePrice !== undefined ? { average_price: item.averagePrice } : {}),
+      ...(item.hasReservation !== undefined ? { has_reservation: item.hasReservation } : {}),
+      ...(item.reservationAt !== undefined ? { reservation_at: item.reservationAt || null } : {}),
+      ...(item.bookingReference !== undefined ? { booking_reference: item.bookingReference } : {}),
+      ...(item.notes !== undefined ? { notes: item.notes } : {}),
+    }),
+    fromDb: (row) => ({
+      id: text(row.id),
+      tripId: text(row.trip_id),
+      dayId: text(row.day_id),
+      name: text(row.name),
+      cuisine: optionalText(row.cuisine),
+      location: text(row.location),
+      googleMapsUrl: optionalText(row.google_maps_url),
+      averagePrice: money(row.average_price),
+      hasReservation: booleanValue(row.has_reservation),
+      reservationAt: optionalText(row.reservation_at),
+      bookingReference: optionalText(row.booking_reference),
+      notes: optionalText(row.notes),
+    }),
+  } satisfies CollectionMapper<Restaurant>,
   contacts: {
     table: 'contacts',
     toDb: (item: Partial<Contact>) => ({
@@ -604,6 +637,7 @@ async function hydrateTrip(client: SupabaseClient, row: DbRecord): Promise<Trip>
     itineraryDays,
     itineraryItems,
     activities,
+    restaurants,
     contacts,
     insurances,
     documents,
@@ -618,6 +652,7 @@ async function hydrateTrip(client: SupabaseClient, row: DbRecord): Promise<Trip>
     selectCollection(client, 'itineraryDays', baseTrip.id),
     selectCollection(client, 'itineraryItems', baseTrip.id),
     selectCollection(client, 'activities', baseTrip.id),
+    selectCollection(client, 'restaurants', baseTrip.id),
     selectCollection(client, 'contacts', baseTrip.id),
     selectCollection(client, 'insurances', baseTrip.id),
     selectCollection(client, 'documents', baseTrip.id),
@@ -635,6 +670,7 @@ async function hydrateTrip(client: SupabaseClient, row: DbRecord): Promise<Trip>
     itineraryDays,
     itineraryItems,
     activities,
+    restaurants,
     contacts,
     insurances,
     documents,

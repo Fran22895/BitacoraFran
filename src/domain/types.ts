@@ -188,6 +188,21 @@ export interface Activity {
   notes?: string
 }
 
+export interface Restaurant {
+  id: string
+  tripId: string
+  dayId: string
+  name: string
+  cuisine?: string
+  location: string
+  googleMapsUrl?: string
+  averagePrice: MoneyAmount
+  hasReservation: boolean
+  reservationAt?: string
+  bookingReference?: string
+  notes?: string
+}
+
 export interface Contact {
   id: string
   tripId: string
@@ -267,6 +282,7 @@ export interface Trip {
   itineraryDays: ItineraryDay[]
   itineraryItems: ItineraryItem[]
   activities: Activity[]
+  restaurants: Restaurant[]
   contacts: Contact[]
   insurances: Insurance[]
   documents: TravelDocument[]
@@ -283,6 +299,7 @@ export type TripCollectionKey =
   | 'itineraryDays'
   | 'itineraryItems'
   | 'activities'
+  | 'restaurants'
   | 'contacts'
   | 'insurances'
   | 'documents'
@@ -299,6 +316,7 @@ export interface TripTotals {
   accommodations: number
   itinerary: number
   activities: number
+  restaurants: number
   insurances: number
   expenses: number
   total: number

@@ -153,6 +153,22 @@ export const seedTrips: Trip[] = [
         notes: 'Llevar pantalon comodo.',
       },
     ],
+    restaurants: [
+      {
+        id: 'restaurant_narukiyo',
+        tripId: 'trip_japon_2027',
+        dayId: 'day_tokio_2',
+        name: 'Narukiyo',
+        cuisine: 'Izakaya',
+        location: 'Shibuya, Tokio',
+        googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=35.6585,139.7013',
+        averagePrice: { amount: 6500, currency: 'JPY', conversionRate: 0.006 },
+        hasReservation: true,
+        reservationAt: '2027-04-07T20:30',
+        bookingReference: 'Reserva a nombre de Francisco',
+        notes: 'Pedir mesa en barra si esta disponible.',
+      },
+    ],
     contacts: [
       {
         id: 'contact_embassy_jp',
@@ -292,6 +308,7 @@ export const seedTrips: Trip[] = [
       },
     ],
     activities: [],
+    restaurants: [],
     contacts: [],
     insurances: [],
     documents: [],

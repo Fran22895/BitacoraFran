@@ -59,6 +59,19 @@ export const activitySchema = z.object({
   notes: optionalText,
 })
 
+export const restaurantSchema = z.object({
+  dayId: z.string().min(1, 'Asocia el restaurante a un dia del itinerario'),
+  name: z.string().min(2, 'Indica el restaurante'),
+  cuisine: optionalText,
+  location: z.string().min(2, 'Indica la ubicacion'),
+  googleMapsUrl: optionalText,
+  averagePrice: moneySchema,
+  hasReservation: z.coerce.boolean(),
+  reservationAt: optionalText,
+  bookingReference: optionalText,
+  notes: optionalText,
+})
+
 export const accommodationSchema = z.object({
   type: z.enum(['hotel', 'apartamento', 'hostal', 'casa-rural', 'otro']),
   name: z.string().min(2, 'Indica alojamiento'),

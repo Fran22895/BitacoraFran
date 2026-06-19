@@ -4,6 +4,7 @@ import {
   activitySchema,
   expenseSchema,
   flightSchema,
+  restaurantSchema,
   tripFormSchema,
   tripInvitationSchema,
 } from './schemas'
@@ -80,6 +81,32 @@ describe('validaciones zod', () => {
         paid: true,
       }).success,
     ).toBe(true)
+  })
+
+  it('valida restaurantes asociados al itinerario', () => {
+    expect(
+      restaurantSchema.safeParse({
+        dayId: 'day_1',
+        name: 'Casa Pepe',
+        cuisine: 'Tapas',
+        location: 'Centro',
+        googleMapsUrl: 'https://maps.google.com/?q=40.4168,-3.7038',
+        averagePrice: money,
+        hasReservation: true,
+        reservationAt: '2027-01-01T21:00',
+        bookingReference: 'Pepe 4 pax',
+      }).success,
+    ).toBe(true)
+
+    expect(
+      restaurantSchema.safeParse({
+        dayId: '',
+        name: 'Casa Pepe',
+        location: 'Centro',
+        averagePrice: money,
+        hasReservation: false,
+      }).success,
+    ).toBe(false)
   })
 
   it('normaliza invitaciones por email y no permite owner', () => {

@@ -180,6 +180,21 @@ create table if not exists public.activities (
   notes text
 );
 
+create table if not exists public.restaurants (
+  id uuid primary key default gen_random_uuid(),
+  trip_id uuid not null references public.trips(id) on delete cascade,
+  day_id uuid not null references public.itinerary_days(id) on delete cascade,
+  name text not null,
+  cuisine text,
+  location text not null,
+  google_maps_url text,
+  average_price jsonb not null default '{"amount":0,"currency":"EUR","conversionRate":1}',
+  has_reservation boolean not null default false,
+  reservation_at timestamptz,
+  booking_reference text,
+  notes text
+);
+
 create table if not exists public.contacts (
   id uuid primary key default gen_random_uuid(),
   trip_id uuid not null references public.trips(id) on delete cascade,
@@ -359,6 +374,7 @@ begin
     'itinerary_days',
     'itinerary_items',
     'activities',
+    'restaurants',
     'contacts',
     'insurances',
     'documents',

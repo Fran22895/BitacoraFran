@@ -30,10 +30,11 @@ export function calculateTripTotals(trip: Trip): TripTotals {
   ])
   const itinerary = sumMoney(trip.itineraryItems.map((item) => item.cost))
   const activities = sumMoney(trip.activities.map((activity) => activity.cost))
+  const restaurants = sumMoney(trip.restaurants.map((restaurant) => restaurant.averagePrice))
   const insurances = sumMoney(trip.insurances.map((insurance) => insurance.cost))
   const expenses = sumMoney(trip.expenses.map((expense) => expense.cost))
   const total = Number(
-    (flights + vehicleRentals + accommodations + itinerary + activities + insurances + expenses).toFixed(2),
+    (flights + vehicleRentals + accommodations + itinerary + activities + restaurants + insurances + expenses).toFixed(2),
   )
 
   return {
@@ -42,6 +43,7 @@ export function calculateTripTotals(trip: Trip): TripTotals {
     accommodations,
     itinerary,
     activities,
+    restaurants,
     insurances,
     expenses,
     total,
@@ -94,6 +96,15 @@ export function findMissingData(trip: Trip): MissingDataIssue[] {
   trip.itineraryItems.forEach((item) => {
     if (!resolveCoordinates(item.latitude, item.longitude, item.googleMapsUrl)) {
       issues.push({ id: `${item.id}-map`, section: 'Itinerario', label: `Falta ubicacion en ${item.title}` })
+    }
+  })
+
+  trip.restaurants.forEach((restaurant) => {
+    if (!restaurant.googleMapsUrl) {
+      issues.push({ id: `${restaurant.id}-map`, section: 'Restaurantes', label: `Falta Google Maps en ${restaurant.name}` })
+    }
+    if (restaurant.hasReservation && !restaurant.reservationAt) {
+      issues.push({ id: `${restaurant.id}-reservation`, section: 'Restaurantes', label: `Falta hora de reserva en ${restaurant.name}` })
     }
   })
 

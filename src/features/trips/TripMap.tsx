@@ -9,10 +9,16 @@ interface TripMapProps {
 }
 
 export function TripMap({ trip }: TripMapProps) {
-  const points = trip.itineraryItems.flatMap((item) => {
-    const coordinates = resolveCoordinates(item.latitude, item.longitude, item.googleMapsUrl)
-    return coordinates ? [{ item, coordinates }] : []
-  })
+  const points = [
+    ...trip.itineraryItems.flatMap((item) => {
+      const coordinates = resolveCoordinates(item.latitude, item.longitude, item.googleMapsUrl)
+      return coordinates ? [{ id: item.id, title: item.title, description: item.description, googleMapsUrl: item.googleMapsUrl, coordinates, color: item.visited ? '#15803d' : '#0f766e' }] : []
+    }),
+    ...trip.restaurants.flatMap((restaurant) => {
+      const coordinates = resolveCoordinates(undefined, undefined, restaurant.googleMapsUrl)
+      return coordinates ? [{ id: restaurant.id, title: restaurant.name, description: restaurant.location, googleMapsUrl: restaurant.googleMapsUrl, coordinates, color: '#be123c' }] : []
+    }),
+  ]
   const center: [number, number] =
     points.length > 0 ? [points[0].coordinates.latitude, points[0].coordinates.longitude] : [40.4168, -3.7038]
 
@@ -28,19 +34,19 @@ export function TripMap({ trip }: TripMapProps) {
             />
             {points.map((point) => (
               <CircleMarker
-                key={point.item.id}
+                key={point.id}
                 center={[point.coordinates.latitude, point.coordinates.longitude]}
                 radius={9}
-                pathOptions={{ color: point.item.visited ? '#15803d' : '#0f766e', fillOpacity: 0.75 }}
+                pathOptions={{ color: point.color, fillOpacity: 0.75 }}
               >
                 <Popup>
-                  <strong>{point.item.title}</strong>
+                  <strong>{point.title}</strong>
                   <br />
-                  {point.item.description}
-                  {point.item.googleMapsUrl && (
+                  {point.description}
+                  {point.googleMapsUrl && (
                     <>
                       <br />
-                      <Button size="small" component="a" href={point.item.googleMapsUrl} target="_blank" rel="noopener noreferrer">
+                      <Button size="small" component="a" href={point.googleMapsUrl} target="_blank" rel="noopener noreferrer">
                         Google Maps
                       </Button>
                     </>

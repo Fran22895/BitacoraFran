@@ -15,6 +15,7 @@ describe('calculos de viaje', () => {
 
     expect(totals.flights).toBeGreaterThan(0)
     expect(totals.accommodations).toBeGreaterThan(0)
+    expect(totals.restaurants).toBeGreaterThan(0)
     expect(totals.total).toBeGreaterThan(totals.flights)
     expect(totals.remainingBudget).toBe(Number((trip.budgetAmount - totals.total).toFixed(2)))
   })
