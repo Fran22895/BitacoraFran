@@ -1,0 +1,40 @@
+:root {
+  color-scheme: light dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+.fc {
+  font-family: inherit;
+}
+
+.fc .fc-toolbar {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fc .fc-toolbar-title {
+  font-size: clamp(1rem, 2vw, 1.35rem);
+}
+
+.leaflet-container {
+  font-family: inherit;
+}

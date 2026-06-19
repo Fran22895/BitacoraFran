@@ -1,0 +1,40 @@
+# Arquitectura
+
+## Frontend
+
+La app esta creada con Vite, React y TypeScript. La entrada es `src/main.tsx`, que monta `AppProviders` y despues `App`.
+
+Capas principales:
+
+- `src/domain`: tipos, constantes, validaciones, calculos, permisos y datos semilla.
+- `src/store`: estado de aplicacion, modo demo local y puente hacia Supabase.
+- `src/lib`: integraciones externas, repositorio Supabase y helpers de Storage.
+- `src/components`: shell, formularios y componentes reutilizables.
+- `src/features`: paginas y piezas de cada flujo.
+
+## Flujo de datos
+
+La app tiene dos modos:
+
+- Demo local: usa `localStorage` y datos semilla.
+- Remoto: al iniciar sesion con Google y Supabase configurado, carga viajes desde PostgreSQL y escribe mediante `src/lib/supabaseTrips.ts`.
+
+El store expone operaciones CRUD genericas sobre viajes y colecciones internas. En remoto hace actualizaciones optimistas y muestra errores si Supabase rechaza la operacion.
+
+## Rutas
+
+- `/login`: login con Google cuando Supabase esta configurado o demo local.
+- `/`: dashboard de viajes.
+- `/trips/:tripId`: detalle completo del viaje.
+
+## UI
+
+Material UI gestiona tema, layout y componentes base. El tema usa una paleta sobria con acentos verdes, ambar y estados semanticos. Las secciones CRUD usan `EntitySection` para mantener formularios y acciones coherentes.
+
+## Carga diferida
+
+Mapa, calendario y PDF se cargan bajo demanda desde el detalle del viaje para reducir el coste inicial del dashboard. La apertura de documentos privados tambien se resuelve bajo demanda con URLs firmadas de Supabase Storage.
+
+## Decisiones registradas
+
+Las decisiones arquitectonicas importantes se guardan en `docs/adr`. ADR significa "Architecture Decision Record": una nota breve que explica una decision, su contexto y sus consecuencias.
