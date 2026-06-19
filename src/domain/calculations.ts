@@ -1,4 +1,5 @@
 import type { MissingDataIssue, MoneyAmount, Trip, TripTotals } from './types'
+import { resolveCoordinates } from './maps'
 
 export function convertMoney(value?: MoneyAmount): number {
   if (!value || !Number.isFinite(value.amount) || !Number.isFinite(value.conversionRate)) {
@@ -91,7 +92,7 @@ export function findMissingData(trip: Trip): MissingDataIssue[] {
   })
 
   trip.itineraryItems.forEach((item) => {
-    if (!item.latitude || !item.longitude) {
+    if (!resolveCoordinates(item.latitude, item.longitude, item.googleMapsUrl)) {
       issues.push({ id: `${item.id}-map`, section: 'Itinerario', label: `Falta ubicacion en ${item.title}` })
     }
   })

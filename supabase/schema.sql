@@ -111,6 +111,8 @@ create table if not exists public.vehicle_rentals (
   pickup_longitude numeric,
   dropoff_latitude numeric,
   dropoff_longitude numeric,
+  pickup_google_maps_url text,
+  dropoff_google_maps_url text,
   condition_photo_urls text[] not null default '{}',
   notes text
 );
@@ -121,6 +123,7 @@ create table if not exists public.accommodations (
   type text not null,
   name text not null,
   address text not null,
+  google_maps_url text,
   booking_reference text,
   board_basis text,
   check_in_at timestamptz,
@@ -153,6 +156,7 @@ create table if not exists public.itinerary_items (
   title text not null,
   description text not null,
   image_url text,
+  google_maps_url text,
   cost jsonb,
   latitude numeric,
   longitude numeric,
@@ -169,6 +173,7 @@ create table if not exists public.activities (
   provider text,
   starts_at timestamptz,
   location text,
+  google_maps_url text,
   cost jsonb not null default '{"amount":0,"currency":"EUR","conversionRate":1}',
   booking_reference text,
   payment_status text not null default 'pendiente',
@@ -183,6 +188,7 @@ create table if not exists public.contacts (
   phone text not null,
   email text,
   address text,
+  google_maps_url text,
   notes text
 );
 

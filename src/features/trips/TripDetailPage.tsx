@@ -42,6 +42,7 @@ import {
   tripRoleLabels,
   tripStatusLabels,
 } from '../../domain/constants'
+import { resolveCoordinates } from '../../domain/maps'
 import { canAssignRole, getAssignableRoles, getPermissionsForTrip } from '../../domain/permissions'
 import { accommodationSchema, activitySchema, expenseSchema, flightSchema, tripInvitationSchema } from '../../domain/schemas'
 import type {
@@ -69,9 +70,9 @@ const TripCalendar = lazy(() => import('./TripCalendar').then((module) => ({ def
 const TripMap = lazy(() => import('./TripMap').then((module) => ({ default: module.TripMap })))
 
 const moneyFields = (prefix: string, label = 'Coste'): FieldConfig[] => [
-  { name: `${prefix}.amount`, label: `${label} importe`, type: 'number', gridSpan: 4 },
+  { name: `${prefix}.amount`, label: `${label} importe`, type: 'number', gridSpan: 4, step: '0.01' },
   { name: `${prefix}.currency`, label: 'Moneda', gridSpan: 4 },
-  { name: `${prefix}.conversionRate`, label: 'Cambio a moneda base', type: 'number', gridSpan: 4 },
+  { name: `${prefix}.conversionRate`, label: 'Cambio a moneda base', type: 'number', gridSpan: 4, step: '0.000001' },
 ]
 
 const flightFields: FieldConfig[] = [
@@ -119,8 +120,10 @@ const vehicleFields: FieldConfig[] = [
   { name: 'dropoffAt', label: 'Hora devolucion', type: 'datetime-local' },
   { name: 'pickupLatitude', label: 'Latitud recogida', type: 'number' },
   { name: 'pickupLongitude', label: 'Longitud recogida', type: 'number' },
+  { name: 'pickupGoogleMapsUrl', label: 'Google Maps recogida', type: 'url', gridSpan: 12 },
   { name: 'dropoffLatitude', label: 'Latitud devolucion', type: 'number' },
   { name: 'dropoffLongitude', label: 'Longitud devolucion', type: 'number' },
+  { name: 'dropoffGoogleMapsUrl', label: 'Google Maps devolucion', type: 'url', gridSpan: 12 },
   { name: 'conditionPhotoUrls', label: 'Fotos estado del vehiculo', type: 'tags', gridSpan: 12 },
   { name: 'notes', label: 'Notas', type: 'multiline', gridSpan: 12 },
 ]
@@ -140,6 +143,7 @@ const accommodationFields: FieldConfig[] = [
   },
   { name: 'name', label: 'Nombre' },
   { name: 'address', label: 'Direccion', gridSpan: 12 },
+  { name: 'googleMapsUrl', label: 'Google Maps', type: 'url', gridSpan: 12 },
   { name: 'bookingReference', label: 'Numero de reserva' },
   { name: 'boardBasis', label: 'Regimen' },
   { name: 'checkInAt', label: 'Check-in', type: 'datetime-local' },
@@ -174,6 +178,7 @@ const contactFields: FieldConfig[] = [
   { name: 'phone', label: 'Telefono' },
   { name: 'email', label: 'Email' },
   { name: 'address', label: 'Direccion', gridSpan: 12 },
+  { name: 'googleMapsUrl', label: 'Google Maps', type: 'url', gridSpan: 12 },
   { name: 'notes', label: 'Notas', type: 'multiline', gridSpan: 12 },
 ]
 
@@ -250,6 +255,16 @@ function MoneyText({ value, currency }: { value?: { amount: number; currency: st
   return <>{formatMoney(value.amount, value.currency)} {value.currency !== currency ? `(x${value.conversionRate})` : ''}</>
 }
 
+function GoogleMapsButton({ url, label = 'Abrir en Google Maps' }: { url?: string; label?: string }) {
+  if (!url) return null
+
+  return (
+    <Button size="small" component="a" href={url} target="_blank" rel="noopener noreferrer" sx={{ alignSelf: 'flex-start' }}>
+      {label}
+    </Button>
+  )
+}
+
 function itemText(primary: string, secondary?: string) {
   return (
     <Stack spacing={0.5}>
@@ -315,6 +330,7 @@ export function TripDetailPage() {
     { name: 'title', label: 'Punto' },
     { name: 'description', label: 'Descripcion', type: 'multiline', gridSpan: 12 },
     { name: 'imageUrl', label: 'URL imagen', type: 'url', gridSpan: 12 },
+    { name: 'googleMapsUrl', label: 'Google Maps', type: 'url', gridSpan: 12 },
     ...moneyFields('cost'),
     { name: 'latitude', label: 'Latitud', type: 'number' },
     { name: 'longitude', label: 'Longitud', type: 'number' },
@@ -330,6 +346,7 @@ export function TripDetailPage() {
     { name: 'provider', label: 'Proveedor' },
     { name: 'startsAt', label: 'Fecha y hora', type: 'datetime-local' },
     { name: 'location', label: 'Ubicacion' },
+    { name: 'googleMapsUrl', label: 'Google Maps', type: 'url', gridSpan: 12 },
     ...moneyFields('cost'),
     { name: 'bookingReference', label: 'Reserva' },
     {
@@ -546,10 +563,12 @@ export function TripDetailPage() {
               dropoffPoint: '',
               pickupAt: '',
               dropoffAt: '',
-              pickupLatitude: 0,
-              pickupLongitude: 0,
-              dropoffLatitude: 0,
-              dropoffLongitude: 0,
+              pickupLatitude: undefined,
+              pickupLongitude: undefined,
+              dropoffLatitude: undefined,
+              dropoffLongitude: undefined,
+              pickupGoogleMapsUrl: '',
+              dropoffGoogleMapsUrl: '',
               conditionPhotoUrls: [],
               notes: '',
             }}
@@ -560,12 +579,18 @@ export function TripDetailPage() {
               updateTripItem(trip.id, 'vehicleRentals', id, values as Partial<Omit<VehicleRental, 'id' | 'tripId'>>)
             }
             onDelete={(id) => deleteTripItem(trip.id, 'vehicleRentals', id)}
-            renderItem={(rental) =>
-              itemText(
-                `${rental.company} | ${rental.brand} ${rental.model}`,
-                `${rental.pickupPoint} -> ${rental.dropoffPoint} | ${formatMoney(rental.price.amount, rental.price.currency)} | Fotos: ${rental.conditionPhotoUrls.length}`,
-              )
-            }
+            renderItem={(rental) => (
+              <Stack spacing={0.5}>
+                {itemText(
+                  `${rental.company} | ${rental.brand} ${rental.model}`,
+                  `${rental.pickupPoint} -> ${rental.dropoffPoint} | ${formatMoney(rental.price.amount, rental.price.currency)} | Fotos: ${rental.conditionPhotoUrls.length}`,
+                )}
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                  <GoogleMapsButton url={rental.pickupGoogleMapsUrl} label="Maps recogida" />
+                  <GoogleMapsButton url={rental.dropoffGoogleMapsUrl} label="Maps devolucion" />
+                </Stack>
+              </Stack>
+            )}
           />
         )}
 
@@ -580,6 +605,7 @@ export function TripDetailPage() {
               type: 'hotel',
               name: '',
               address: '',
+              googleMapsUrl: '',
               bookingReference: '',
               boardBasis: '',
               checkInAt: '',
@@ -604,12 +630,15 @@ export function TripDetailPage() {
               updateTripItem(trip.id, 'accommodations', id, values as Partial<Omit<Accommodation, 'id' | 'tripId'>>)
             }
             onDelete={(id) => deleteTripItem(trip.id, 'accommodations', id)}
-            renderItem={(accommodation) =>
-              itemText(
-                accommodation.name,
-                `${accommodation.address} | ${cleanDateTime(accommodation.checkInAt)} - ${cleanDateTime(accommodation.checkOutAt)} | ${formatMoney(accommodation.cost.amount, accommodation.cost.currency)}`,
-              )
-            }
+            renderItem={(accommodation) => (
+              <Stack spacing={0.5}>
+                {itemText(
+                  accommodation.name,
+                  `${accommodation.address} | ${cleanDateTime(accommodation.checkInAt)} - ${cleanDateTime(accommodation.checkOutAt)} | ${formatMoney(accommodation.cost.amount, accommodation.cost.currency)}`,
+                )}
+                <GoogleMapsButton url={accommodation.googleMapsUrl} />
+              </Stack>
+            )}
           />
         )}
 
@@ -642,9 +671,10 @@ export function TripDetailPage() {
                 title: '',
                 description: '',
                 imageUrl: '',
+                googleMapsUrl: '',
                 cost: { amount: 0, currency: trip.baseCurrency, conversionRate: 1 },
-                latitude: 0,
-                longitude: 0,
+                latitude: undefined,
+                longitude: undefined,
                 recommendations: { food: '', transport: '', tips: '', safety: '' },
                 visited: false,
                 order: trip.itineraryItems.length + 1,
@@ -659,30 +689,40 @@ export function TripDetailPage() {
               }
               onDelete={(id) => deleteTripItem(trip.id, 'itineraryItems', id)}
               emptyLabel={trip.itineraryDays.length === 0 ? 'Crea primero un dia del itinerario.' : 'Sin puntos de itinerario.'}
-              renderItem={(item) => (
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                  {item.imageUrl && (
-                    <Box
-                      component="img"
-                      src={item.imageUrl}
-                      alt={item.title}
-                      sx={{ width: { xs: '100%', sm: 132 }, height: 92, objectFit: 'cover', borderRadius: 1 }}
-                    />
-                  )}
-                  <Box sx={{ minWidth: 0 }}>
-                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                      <Typography variant="subtitle1">{item.title}</Typography>
-                      <Chip size="small" label={item.visited ? 'Visitado' : 'Pendiente'} color={item.visited ? 'success' : 'default'} />
-                    </Stack>
-                    <Typography variant="body2" color="text.secondary">
-                      {item.description}
-                    </Typography>
-                    <Typography variant="body2">
-                      Coste: <MoneyText value={item.cost} currency={trip.baseCurrency} />
-                    </Typography>
-                  </Box>
-                </Stack>
-              )}
+              renderItem={(item) => {
+                const coordinates = resolveCoordinates(item.latitude, item.longitude, item.googleMapsUrl)
+
+                return (
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                    {item.imageUrl && (
+                      <Box
+                        component="img"
+                        src={item.imageUrl}
+                        alt={item.title}
+                        sx={{ width: { xs: '100%', sm: 132 }, height: 92, objectFit: 'cover', borderRadius: 1 }}
+                      />
+                    )}
+                    <Box sx={{ minWidth: 0 }}>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Typography variant="subtitle1">{item.title}</Typography>
+                        <Chip size="small" label={item.visited ? 'Visitado' : 'Pendiente'} color={item.visited ? 'success' : 'default'} />
+                      </Stack>
+                      <Typography variant="body2" color="text.secondary">
+                        {item.description}
+                      </Typography>
+                      {coordinates && (
+                        <Typography variant="body2" color="text.secondary">
+                          {coordinates.latitude.toFixed(5)}, {coordinates.longitude.toFixed(5)}
+                        </Typography>
+                      )}
+                      <Typography variant="body2">
+                        Coste: <MoneyText value={item.cost} currency={trip.baseCurrency} />
+                      </Typography>
+                      <GoogleMapsButton url={item.googleMapsUrl} />
+                    </Box>
+                  </Stack>
+                )
+              }}
             />
           </Stack>
         )}
@@ -701,6 +741,7 @@ export function TripDetailPage() {
                 provider: '',
                 startsAt: '',
                 location: '',
+                googleMapsUrl: '',
                 cost: { amount: 0, currency: trip.baseCurrency, conversionRate: 1 },
                 bookingReference: '',
                 paymentStatus: 'pendiente',
@@ -714,12 +755,15 @@ export function TripDetailPage() {
                 updateTripItem(trip.id, 'activities', id, values as Partial<Omit<Activity, 'id' | 'tripId'>>)
               }
               onDelete={(id) => deleteTripItem(trip.id, 'activities', id)}
-              renderItem={(activity) =>
-                itemText(
-                  activity.name,
-                  `${activity.provider || 'Sin proveedor'} | ${cleanDateTime(activity.startsAt)} | ${formatMoney(activity.cost.amount, activity.cost.currency)} | ${paymentStatusLabels[activity.paymentStatus]}`,
-                )
-              }
+              renderItem={(activity) => (
+                <Stack spacing={0.5}>
+                  {itemText(
+                    activity.name,
+                    `${activity.provider || 'Sin proveedor'} | ${cleanDateTime(activity.startsAt)} | ${formatMoney(activity.cost.amount, activity.cost.currency)} | ${paymentStatusLabels[activity.paymentStatus]}`,
+                  )}
+                  <GoogleMapsButton url={activity.googleMapsUrl} />
+                </Stack>
+              )}
             />
 
             <EntitySection<Expense>
@@ -759,7 +803,7 @@ export function TripDetailPage() {
               icon={PhoneIcon}
               items={trip.contacts}
               fields={contactFields}
-              defaultValues={{ category: 'emergencia', name: '', phone: '', email: '', address: '', notes: '' }}
+              defaultValues={{ category: 'emergencia', name: '', phone: '', email: '', address: '', googleMapsUrl: '', notes: '' }}
               canEdit={canEdit}
               addLabel="Anadir telefono"
               onCreate={(values) => addTripItem(trip.id, 'contacts', values as Omit<Contact, 'id' | 'tripId'>)}
@@ -782,6 +826,7 @@ export function TripDetailPage() {
                       {contact.phone}
                     </Typography>
                   </Stack>
+                  <GoogleMapsButton url={contact.googleMapsUrl} />
                 </Stack>
               )}
             />

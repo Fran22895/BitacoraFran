@@ -48,11 +48,21 @@ function optionalText(value: unknown) {
 }
 
 function numberValue(value: unknown, fallback = 0) {
-  return typeof value === 'number' ? value : fallback
+  if (typeof value === 'number') return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : fallback
+  }
+  return fallback
 }
 
 function optionalNumber(value: unknown) {
-  return typeof value === 'number' ? value : undefined
+  if (typeof value === 'number') return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : undefined
+  }
+  return undefined
 }
 
 function booleanValue(value: unknown, fallback = false) {
@@ -278,6 +288,8 @@ const collectionMappers = {
       ...(item.pickupLongitude !== undefined ? { pickup_longitude: item.pickupLongitude } : {}),
       ...(item.dropoffLatitude !== undefined ? { dropoff_latitude: item.dropoffLatitude } : {}),
       ...(item.dropoffLongitude !== undefined ? { dropoff_longitude: item.dropoffLongitude } : {}),
+      ...(item.pickupGoogleMapsUrl !== undefined ? { pickup_google_maps_url: item.pickupGoogleMapsUrl } : {}),
+      ...(item.dropoffGoogleMapsUrl !== undefined ? { dropoff_google_maps_url: item.dropoffGoogleMapsUrl } : {}),
       ...(item.conditionPhotoUrls !== undefined ? { condition_photo_urls: item.conditionPhotoUrls } : {}),
       ...(item.notes !== undefined ? { notes: item.notes } : {}),
     }),
@@ -303,6 +315,8 @@ const collectionMappers = {
       pickupLongitude: optionalNumber(row.pickup_longitude),
       dropoffLatitude: optionalNumber(row.dropoff_latitude),
       dropoffLongitude: optionalNumber(row.dropoff_longitude),
+      pickupGoogleMapsUrl: optionalText(row.pickup_google_maps_url),
+      dropoffGoogleMapsUrl: optionalText(row.dropoff_google_maps_url),
       conditionPhotoUrls: stringArray(row.condition_photo_urls),
       notes: optionalText(row.notes),
     }),
@@ -315,6 +329,7 @@ const collectionMappers = {
       ...(item.type !== undefined ? { type: item.type } : {}),
       ...(item.name !== undefined ? { name: item.name } : {}),
       ...(item.address !== undefined ? { address: item.address } : {}),
+      ...(item.googleMapsUrl !== undefined ? { google_maps_url: item.googleMapsUrl } : {}),
       ...(item.bookingReference !== undefined ? { booking_reference: item.bookingReference } : {}),
       ...(item.boardBasis !== undefined ? { board_basis: item.boardBasis } : {}),
       ...(item.checkInAt !== undefined ? { check_in_at: item.checkInAt } : {}),
@@ -337,6 +352,7 @@ const collectionMappers = {
       type: text(row.type, 'hotel') as Accommodation['type'],
       name: text(row.name),
       address: text(row.address),
+      googleMapsUrl: optionalText(row.google_maps_url),
       bookingReference: optionalText(row.booking_reference),
       boardBasis: optionalText(row.board_basis),
       checkInAt: text(row.check_in_at),
@@ -380,6 +396,7 @@ const collectionMappers = {
       ...(item.title !== undefined ? { title: item.title } : {}),
       ...(item.description !== undefined ? { description: item.description } : {}),
       ...(item.imageUrl !== undefined ? { image_url: item.imageUrl } : {}),
+      ...(item.googleMapsUrl !== undefined ? { google_maps_url: item.googleMapsUrl } : {}),
       ...(item.cost !== undefined ? { cost: item.cost } : {}),
       ...(item.latitude !== undefined ? { latitude: item.latitude } : {}),
       ...(item.longitude !== undefined ? { longitude: item.longitude } : {}),
@@ -394,6 +411,7 @@ const collectionMappers = {
       title: text(row.title),
       description: text(row.description),
       imageUrl: optionalText(row.image_url),
+      googleMapsUrl: optionalText(row.google_maps_url),
       cost: optionalMoney(row.cost),
       latitude: optionalNumber(row.latitude),
       longitude: optionalNumber(row.longitude),
@@ -412,6 +430,7 @@ const collectionMappers = {
       ...(item.provider !== undefined ? { provider: item.provider } : {}),
       ...(item.startsAt !== undefined ? { starts_at: item.startsAt } : {}),
       ...(item.location !== undefined ? { location: item.location } : {}),
+      ...(item.googleMapsUrl !== undefined ? { google_maps_url: item.googleMapsUrl } : {}),
       ...(item.cost !== undefined ? { cost: item.cost } : {}),
       ...(item.bookingReference !== undefined ? { booking_reference: item.bookingReference } : {}),
       ...(item.paymentStatus !== undefined ? { payment_status: item.paymentStatus } : {}),
@@ -425,6 +444,7 @@ const collectionMappers = {
       provider: optionalText(row.provider),
       startsAt: optionalText(row.starts_at),
       location: optionalText(row.location),
+      googleMapsUrl: optionalText(row.google_maps_url),
       cost: money(row.cost),
       bookingReference: optionalText(row.booking_reference),
       paymentStatus: text(row.payment_status, 'pendiente') as Activity['paymentStatus'],
@@ -440,6 +460,7 @@ const collectionMappers = {
       ...(item.phone !== undefined ? { phone: item.phone } : {}),
       ...(item.email !== undefined ? { email: item.email } : {}),
       ...(item.address !== undefined ? { address: item.address } : {}),
+      ...(item.googleMapsUrl !== undefined ? { google_maps_url: item.googleMapsUrl } : {}),
       ...(item.notes !== undefined ? { notes: item.notes } : {}),
     }),
     fromDb: (row) => ({
@@ -450,6 +471,7 @@ const collectionMappers = {
       phone: text(row.phone),
       email: optionalText(row.email),
       address: optionalText(row.address),
+      googleMapsUrl: optionalText(row.google_maps_url),
       notes: optionalText(row.notes),
     }),
   } satisfies CollectionMapper<Contact>,

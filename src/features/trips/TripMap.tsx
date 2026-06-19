@@ -1,6 +1,7 @@
 import 'leaflet/dist/leaflet.css'
-import { Box, Paper, Stack, Typography } from '@mui/material'
+import { Box, Button, Paper, Stack, Typography } from '@mui/material'
 import { CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet'
+import { resolveCoordinates } from '../../domain/maps'
 import type { Trip } from '../../domain/types'
 
 interface TripMapProps {
@@ -8,11 +9,12 @@ interface TripMapProps {
 }
 
 export function TripMap({ trip }: TripMapProps) {
-  const points = trip.itineraryItems.filter(
-    (item): item is typeof item & { latitude: number; longitude: number } =>
-      typeof item.latitude === 'number' && typeof item.longitude === 'number',
-  )
-  const center: [number, number] = points.length > 0 ? [points[0].latitude, points[0].longitude] : [40.4168, -3.7038]
+  const points = trip.itineraryItems.flatMap((item) => {
+    const coordinates = resolveCoordinates(item.latitude, item.longitude, item.googleMapsUrl)
+    return coordinates ? [{ item, coordinates }] : []
+  })
+  const center: [number, number] =
+    points.length > 0 ? [points[0].coordinates.latitude, points[0].coordinates.longitude] : [40.4168, -3.7038]
 
   return (
     <Paper variant="outlined" sx={{ p: { xs: 1, md: 2 } }}>
@@ -26,15 +28,23 @@ export function TripMap({ trip }: TripMapProps) {
             />
             {points.map((point) => (
               <CircleMarker
-                key={point.id}
-                center={[point.latitude, point.longitude]}
+                key={point.item.id}
+                center={[point.coordinates.latitude, point.coordinates.longitude]}
                 radius={9}
-                pathOptions={{ color: point.visited ? '#15803d' : '#0f766e', fillOpacity: 0.75 }}
+                pathOptions={{ color: point.item.visited ? '#15803d' : '#0f766e', fillOpacity: 0.75 }}
               >
                 <Popup>
-                  <strong>{point.title}</strong>
+                  <strong>{point.item.title}</strong>
                   <br />
-                  {point.description}
+                  {point.item.description}
+                  {point.item.googleMapsUrl && (
+                    <>
+                      <br />
+                      <Button size="small" component="a" href={point.item.googleMapsUrl} target="_blank" rel="noopener noreferrer">
+                        Google Maps
+                      </Button>
+                    </>
+                  )}
                 </Popup>
               </CircleMarker>
             ))}

@@ -23,6 +23,18 @@ Supabase usa PostgreSQL con RLS activado. El archivo `supabase/schema.sql` crea 
 - `journal_entries`: diario de bitacora.
 - `expenses`: gastos generales.
 
+## Ubicaciones
+
+Las referencias geograficas pueden guardar coordenadas manuales y enlaces de Google Maps:
+
+- `vehicle_rentals`: `pickup_latitude`, `pickup_longitude`, `dropoff_latitude`, `dropoff_longitude`, `pickup_google_maps_url`, `dropoff_google_maps_url`.
+- `accommodations`: `address`, `google_maps_url`.
+- `itinerary_items`: `latitude`, `longitude`, `google_maps_url`.
+- `activities`: `location`, `google_maps_url`.
+- `contacts`: `address`, `google_maps_url`.
+
+La app usa las coordenadas manuales como fuente principal. Si faltan y el enlace largo de Google Maps contiene coordenadas, intenta extraerlas para pintar el punto en el mapa.
+
 ## Costes multimoneda
 
 Los costes se guardan como JSON:

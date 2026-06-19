@@ -79,7 +79,7 @@ function normalizeTrip(trip: Trip): Trip {
   }
 }
 
-function readStoredTrips() {
+function readStoredDemoTrips() {
   const storedTrips = localStorage.getItem(tripsStorageKey)
   if (!storedTrips) return seedTrips.map(normalizeTrip)
 
@@ -144,9 +144,10 @@ function createEmptyTrip(draft: TripDraft, owner: UserProfile, id = createId('tr
 }
 
 export function TravelLogProvider({ children }: PropsWithChildren) {
-  const [profile, setProfile] = useState<UserProfile | null>(() => readStoredProfile())
-  const [trips, setTrips] = useState<Trip[]>(() => readStoredTrips())
-  const [authMode, setAuthMode] = useState<AuthMode>(() => readStoredAuthMode())
+  const initialAuthMode = readStoredAuthMode()
+  const [profile, setProfile] = useState<UserProfile | null>(() => (initialAuthMode ? readStoredProfile() : null))
+  const [trips, setTrips] = useState<Trip[]>(() => (initialAuthMode === 'demo' ? readStoredDemoTrips() : []))
+  const [authMode, setAuthMode] = useState<AuthMode>(() => initialAuthMode)
   const [isLoading, setIsLoading] = useState(false)
   const [lastError, setLastError] = useState<string | null>(null)
 
@@ -220,9 +221,8 @@ export function TravelLogProvider({ children }: PropsWithChildren) {
 
     void loadRemoteSession()
 
-    const { data } = client.auth.onAuthStateChange((_event, session) => {
-      const user = session?.user
-      if (!user) {
+    const { data } = client.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
         if (readStoredAuthMode() === 'remote') {
           setProfile(null)
           setAuthMode(null)
@@ -230,6 +230,11 @@ export function TravelLogProvider({ children }: PropsWithChildren) {
         }
         return
       }
+
+      if (event !== 'SIGNED_IN') return
+
+      const user = session?.user
+      if (!user) return
 
       void (async () => {
         setIsLoading(true)
@@ -255,7 +260,7 @@ export function TravelLogProvider({ children }: PropsWithChildren) {
   const loginAsDemo = useCallback(() => {
     setAuthMode('demo')
     setProfile(demoProfile)
-    setTrips(readStoredTrips())
+    setTrips(readStoredDemoTrips())
     setLastError(null)
   }, [])
 

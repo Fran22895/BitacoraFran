@@ -11,7 +11,7 @@ import {
   TextField,
   Tooltip,
 } from '@mui/material'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { tripStatusLabels } from '../domain/constants'
 import { tripFormSchema } from '../domain/schemas'
@@ -67,6 +67,7 @@ function getDefaultValues(trip?: Trip): TripFormValues {
 }
 
 export function TripFormDialog({ open, trip, onClose, onSave }: TripFormDialogProps) {
+  const resetKeyRef = useRef<string | null>(null)
   const {
     control,
     register,
@@ -79,9 +80,16 @@ export function TripFormDialog({ open, trip, onClose, onSave }: TripFormDialogPr
   })
 
   useEffect(() => {
-    if (open) {
-      reset(getDefaultValues(trip))
+    if (!open) {
+      resetKeyRef.current = null
+      return
     }
+
+    const resetKey = trip?.id ?? 'new'
+    if (resetKeyRef.current === resetKey) return
+
+    resetKeyRef.current = resetKey
+    reset(getDefaultValues(trip))
   }, [open, reset, trip])
 
   const submit = handleSubmit((values) => {
@@ -154,6 +162,7 @@ export function TripFormDialog({ open, trip, onClose, onSave }: TripFormDialogPr
               label="Presupuesto"
               type="number"
               {...register('budgetAmount', { valueAsNumber: true })}
+              slotProps={{ htmlInput: { step: '0.01', inputMode: 'decimal' } }}
               error={Boolean(errors.budgetAmount)}
               helperText={errors.budgetAmount?.message}
               fullWidth

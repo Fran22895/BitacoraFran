@@ -112,6 +112,8 @@ export interface VehicleRental {
   pickupLongitude?: number
   dropoffLatitude?: number
   dropoffLongitude?: number
+  pickupGoogleMapsUrl?: string
+  dropoffGoogleMapsUrl?: string
   conditionPhotoUrls: string[]
   notes?: string
 }
@@ -122,6 +124,7 @@ export interface Accommodation {
   type: AccommodationType
   name: string
   address: string
+  googleMapsUrl?: string
   bookingReference?: string
   boardBasis?: string
   checkInAt: string
@@ -161,6 +164,7 @@ export interface ItineraryItem {
   title: string
   description: string
   imageUrl?: string
+  googleMapsUrl?: string
   cost?: MoneyAmount
   latitude?: number
   longitude?: number
@@ -177,6 +181,7 @@ export interface Activity {
   provider?: string
   startsAt?: string
   location?: string
+  googleMapsUrl?: string
   cost: MoneyAmount
   bookingReference?: string
   paymentStatus: PaymentStatus
@@ -191,6 +196,7 @@ export interface Contact {
   phone: string
   email?: string
   address?: string
+  googleMapsUrl?: string
   notes?: string
 }
 

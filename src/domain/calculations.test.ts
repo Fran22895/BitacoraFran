@@ -6,6 +6,7 @@ import type { Trip } from './types'
 describe('calculos de viaje', () => {
   it('convierte importes con tasa manual', () => {
     expect(convertMoney({ amount: 100, currency: 'USD', conversionRate: 0.92 })).toBe(92)
+    expect(convertMoney({ amount: 12.35, currency: 'USD', conversionRate: 0.92 })).toBe(11.36)
   })
 
   it('suma costes del viaje por categoria y calcula restante', () => {
@@ -25,6 +26,22 @@ describe('calculos de viaje', () => {
     }
 
     expect(findMissingData(trip).map((issue) => issue.section)).toContain('Vuelos')
+  })
+
+  it('acepta enlaces de Google Maps como ubicacion del itinerario', () => {
+    const trip: Trip = {
+      ...seedTrips[0],
+      itineraryItems: [
+        {
+          ...seedTrips[0].itineraryItems[0],
+          latitude: undefined,
+          longitude: undefined,
+          googleMapsUrl: 'https://www.google.com/maps/search/?api=1&query=35.7148,139.7967',
+        },
+      ],
+    }
+
+    expect(findMissingData(trip).map((issue) => issue.section)).not.toContain('Itinerario')
   })
 
   it('ordena viajes por fecha mas reciente', () => {

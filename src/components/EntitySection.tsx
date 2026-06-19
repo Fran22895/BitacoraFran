@@ -37,7 +37,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useEffect, useMemo, useState, type ElementType, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ElementType, type ReactNode } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import type { z } from 'zod'
 
@@ -55,6 +55,7 @@ export interface FieldConfig {
   options?: SelectOption[]
   helperText?: string
   gridSpan?: number
+  step?: string | number
 }
 
 interface EntitySectionProps<T extends { id: string }> {
@@ -185,6 +186,7 @@ export function EntitySection<T extends { id: string }>({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<T | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
+  const resetKeyRef = useRef<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
   const ids = useMemo(() => items.map((item) => item.id), [items])
   const {
@@ -196,7 +198,15 @@ export function EntitySection<T extends { id: string }>({
   } = useForm()
 
   useEffect(() => {
-    if (!dialogOpen) return
+    if (!dialogOpen) {
+      resetKeyRef.current = null
+      return
+    }
+
+    const resetKey = editingItem?.id ?? 'new'
+    if (resetKeyRef.current === resetKey) return
+
+    resetKeyRef.current = resetKey
     reset(prepareFormValues(editingItem ? (editingItem as EntityValues) : defaultValues, fields))
   }, [defaultValues, dialogOpen, editingItem, fields, reset])
 
@@ -403,8 +413,11 @@ export function EntitySection<T extends { id: string }>({
                       helperText={field.helperText ?? (type === 'tags' ? 'Separar valores por coma' : undefined)}
                       fullWidth
                       slotProps={
-                        type === 'date' || type === 'datetime-local'
-                          ? { inputLabel: { shrink: true } }
+                        type === 'date' || type === 'datetime-local' || type === 'number'
+                          ? {
+                              inputLabel: type === 'date' || type === 'datetime-local' ? { shrink: true } : undefined,
+                              htmlInput: type === 'number' ? { step: field.step ?? 'any', inputMode: 'decimal' } : undefined,
+                            }
                           : undefined
                       }
                       {...register(field.name, { valueAsNumber: type === 'number' })}
