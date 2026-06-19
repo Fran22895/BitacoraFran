@@ -1,0 +1,23 @@
+project_id = "BitacoraFran"
+
+[auth]
+site_url = "https://bitacorafran.vercel.app"
+additional_redirect_urls = [
+  "http://localhost:5173",
+  "https://bitacorafran.vercel.app",
+]
+
+[auth.email]
+enable_confirmations = true
+max_frequency = "1m0s"
+otp_length = 8
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[auth.external.google]
+enabled = true
+client_id = "729319002479-askbi8k808625stdldjc8h4hpqnh8npb.apps.googleusercontent.com"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET)"
+skip_nonce_check = false
