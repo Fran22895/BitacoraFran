@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getPermissionsForTrip } from './permissions'
+import { canAssignRole, getAssignableRoles, getPermissionsForTrip } from './permissions'
 import { seedTrips } from './seed'
 import type { UserProfile } from './types'
 
@@ -30,5 +30,18 @@ describe('permisos por viaje', () => {
 
     expect(permissions.canRead).toBe(false)
     expect(permissions.canEdit).toBe(false)
+  })
+
+  it('limita roles asignables para propietarios y admins', () => {
+    expect(getAssignableRoles('owner')).toEqual(['admin', 'editor', 'reader'])
+    expect(getAssignableRoles('admin')).toEqual(['editor', 'reader'])
+    expect(getAssignableRoles('editor')).toEqual([])
+  })
+
+  it('evita que un admin modifique propietarios o admins', () => {
+    expect(canAssignRole('admin', 'reader')).toBe(true)
+    expect(canAssignRole('admin', 'editor')).toBe(true)
+    expect(canAssignRole('admin', 'admin')).toBe(false)
+    expect(canAssignRole('admin', 'owner')).toBe(false)
   })
 })

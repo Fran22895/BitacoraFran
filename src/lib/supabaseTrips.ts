@@ -15,7 +15,9 @@ import type {
   Trip,
   TripCollectionItem,
   TripCollectionKey,
+  TripInvitation,
   TripMember,
+  TripRole,
   UserProfile,
   VehicleRental,
 } from '../domain/types'
@@ -136,6 +138,7 @@ function tripToDb(draft: Partial<TripDraft> & { id?: string; ownerId?: string })
 function tripFromDb(row: DbRecord): Omit<
   Trip,
   | 'members'
+  | 'invitations'
   | 'flights'
   | 'vehicleRentals'
   | 'accommodations'
@@ -186,6 +189,30 @@ const collectionMappers = {
       role: text(row.role, 'reader') as TripMember['role'],
     }),
   } satisfies CollectionMapper<TripMember>,
+  invitations: {
+    table: 'trip_invitations',
+    defaultOrder: { column: 'created_at', ascending: false },
+    toDb: (item: Partial<TripInvitation>) => ({
+      ...baseItemDb(item),
+      ...(item.email !== undefined ? { email: item.email.trim().toLowerCase() } : {}),
+      ...(item.role !== undefined ? { role: item.role } : {}),
+      ...(item.status !== undefined ? { status: item.status } : {}),
+      ...(item.invitedBy !== undefined ? { invited_by: item.invitedBy } : {}),
+      ...(item.acceptedBy !== undefined ? { accepted_by: item.acceptedBy } : {}),
+      ...(item.acceptedAt !== undefined ? { accepted_at: item.acceptedAt } : {}),
+    }),
+    fromDb: (row) => ({
+      id: text(row.id),
+      tripId: text(row.trip_id),
+      email: text(row.email),
+      role: text(row.role, 'reader') as TripInvitation['role'],
+      status: text(row.status, 'pending') as TripInvitation['status'],
+      invitedBy: optionalText(row.invited_by),
+      acceptedBy: optionalText(row.accepted_by),
+      createdAt: text(row.created_at, new Date().toISOString()),
+      acceptedAt: optionalText(row.accepted_at),
+    }),
+  } satisfies CollectionMapper<TripInvitation>,
   flights: {
     table: 'flights',
     toDb: (item: Partial<Flight>) => ({
@@ -548,6 +575,7 @@ async function hydrateTrip(client: SupabaseClient, row: DbRecord): Promise<Trip>
   const baseTrip = tripFromDb(row)
   const [
     members,
+    invitations,
     flights,
     vehicleRentals,
     accommodations,
@@ -561,6 +589,7 @@ async function hydrateTrip(client: SupabaseClient, row: DbRecord): Promise<Trip>
     expenses,
   ] = await Promise.all([
     selectCollection(client, 'members', baseTrip.id),
+    selectCollection(client, 'invitations', baseTrip.id),
     selectCollection(client, 'flights', baseTrip.id),
     selectCollection(client, 'vehicleRentals', baseTrip.id),
     selectCollection(client, 'accommodations', baseTrip.id),
@@ -577,6 +606,7 @@ async function hydrateTrip(client: SupabaseClient, row: DbRecord): Promise<Trip>
   return {
     ...baseTrip,
     members,
+    invitations,
     flights,
     vehicleRentals,
     accommodations,
@@ -596,6 +626,32 @@ export async function fetchRemoteTrips(client: SupabaseClient) {
   if (error) throw error
 
   return Promise.all((data ?? []).map((row) => hydrateTrip(client, row as DbRecord)))
+}
+
+export async function fetchRemoteTrip(client: SupabaseClient, tripId: string) {
+  const { data, error } = await client.from('trips').select('*').eq('id', tripId).single()
+  if (error) throw error
+  return hydrateTrip(client, data as DbRecord)
+}
+
+export async function claimRemoteTripInvitations(client: SupabaseClient) {
+  const { error } = await client.rpc('claim_trip_invitations')
+  if (error) throw error
+}
+
+export async function inviteRemoteTripMember(
+  client: SupabaseClient,
+  tripId: string,
+  email: string,
+  role: Exclude<TripRole, 'owner'>,
+) {
+  const { error } = await client.rpc('invite_trip_member', {
+    target_trip_id: tripId,
+    invite_email: email.trim().toLowerCase(),
+    invite_role: role,
+  })
+  if (error) throw error
+  return fetchRemoteTrip(client, tripId)
 }
 
 export async function createRemoteTrip(client: SupabaseClient, draft: TripDraft, owner: UserProfile) {

@@ -42,6 +42,7 @@ export const seedTrips: Trip[] = [
         role: 'editor',
       },
     ],
+    invitations: [],
     flights: [
       {
         id: 'flight_mad_hnd',
@@ -238,6 +239,7 @@ export const seedTrips: Trip[] = [
         role: 'owner',
       },
     ],
+    invitations: [],
     flights: [],
     vehicleRentals: [
       {

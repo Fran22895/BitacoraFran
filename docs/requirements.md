@@ -24,6 +24,8 @@ BitacoraFran permite planificar y registrar viajes con enfoque practico: consult
 - Calculo automatico de totales y restante de presupuesto.
 - Exportacion PDF del viaje.
 - Permisos por viaje: propietario, admin, editor y lector.
+- Compartir viajes por email con invitaciones pendientes.
+- Aceptar automaticamente invitaciones pendientes cuando el usuario entra con Google usando ese email.
 - Modo claro/oscuro y experiencia responsive movil.
 
 ## Requisitos no funcionales

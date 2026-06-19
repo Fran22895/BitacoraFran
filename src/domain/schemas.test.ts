@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { accommodationSchema, activitySchema, expenseSchema, flightSchema, tripFormSchema } from './schemas'
+import {
+  accommodationSchema,
+  activitySchema,
+  expenseSchema,
+  flightSchema,
+  tripFormSchema,
+  tripInvitationSchema,
+} from './schemas'
 
 const money = { amount: 10, currency: 'EUR', conversionRate: 1 }
 
@@ -73,5 +80,19 @@ describe('validaciones zod', () => {
         paid: true,
       }).success,
     ).toBe(true)
+  })
+
+  it('normaliza invitaciones por email y no permite owner', () => {
+    const parsed = tripInvitationSchema.safeParse({
+      email: '  VIAJERO@EXAMPLE.COM ',
+      role: 'editor',
+    })
+
+    expect(parsed.success).toBe(true)
+    if (parsed.success) {
+      expect(parsed.data.email).toBe('viajero@example.com')
+    }
+
+    expect(tripInvitationSchema.safeParse({ email: 'viajero@example.com', role: 'owner' }).success).toBe(false)
   })
 })

@@ -27,7 +27,7 @@ import {
   Tabs,
   Typography,
 } from '@mui/material'
-import { Suspense, lazy, useMemo, useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../../components/AppShell'
 import { EntitySection, type FieldConfig } from '../../components/EntitySection'
@@ -42,8 +42,8 @@ import {
   tripRoleLabels,
   tripStatusLabels,
 } from '../../domain/constants'
-import { getPermissionsForTrip } from '../../domain/permissions'
-import { accommodationSchema, activitySchema, expenseSchema, flightSchema } from '../../domain/schemas'
+import { canAssignRole, getAssignableRoles, getPermissionsForTrip } from '../../domain/permissions'
+import { accommodationSchema, activitySchema, expenseSchema, flightSchema, tripInvitationSchema } from '../../domain/schemas'
 import type {
   Accommodation,
   Activity,
@@ -55,7 +55,9 @@ import type {
   ItineraryItem,
   JournalEntry,
   TravelDocument,
+  TripInvitation,
   TripMember,
+  TripRole,
   VehicleRental,
 } from '../../domain/types'
 import { useTravelLog, type TripDraft } from '../../store/TravelLogContext'
@@ -215,15 +217,26 @@ const expenseFields: FieldConfig[] = [
   { name: 'paid', label: 'Pagado', type: 'boolean' },
 ]
 
-const memberFields: FieldConfig[] = [
-  { name: 'userId', label: 'ID usuario' },
+const roleOptions = (roles: TripRole[]) => roles.map((value) => ({ value, label: tripRoleLabels[value] }))
+
+const memberFields = (roles: TripRole[]): FieldConfig[] => [
   { name: 'name', label: 'Nombre' },
   { name: 'email', label: 'Email' },
   {
     name: 'role',
     label: 'Rol',
     type: 'select',
-    options: Object.entries(tripRoleLabels).map(([value, label]) => ({ value, label })),
+    options: roleOptions(roles),
+  },
+]
+
+const invitationFields = (roles: TripRole[]): FieldConfig[] => [
+  { name: 'email', label: 'Email' },
+  {
+    name: 'role',
+    label: 'Rol',
+    type: 'select',
+    options: roleOptions(roles),
   },
 ]
 
@@ -260,6 +273,7 @@ export function TripDetailPage() {
     trips,
     updateTrip,
     deleteTrip,
+    inviteTripMember,
     addTripItem,
     updateTripItem,
     deleteTripItem,
@@ -271,8 +285,8 @@ export function TripDetailPage() {
   const [tripDialogOpen, setTripDialogOpen] = useState(false)
 
   const permissions = trip ? getPermissionsForTrip(trip, profile) : undefined
-  const totals = useMemo(() => (trip ? calculateTripTotals(trip) : null), [trip])
-  const issues = useMemo(() => (trip ? findMissingData(trip) : []), [trip])
+  const totals = trip ? calculateTripTotals(trip) : null
+  const issues = trip ? findMissingData(trip) : []
 
   if (!trip) {
     return <Navigate to="/" replace />
@@ -287,6 +301,9 @@ export function TripDetailPage() {
   }
 
   const canEdit = permissions.canEdit
+  const assignableRoles = getAssignableRoles(permissions.role)
+  const canManageMember = (member: TripMember) =>
+    Boolean(permissions.role && member.role !== 'owner' && canAssignRole(permissions.role, member.role))
   const dayOptions = trip.itineraryDays.map((day) => ({ value: day.id, label: `${day.date} - ${day.title}` }))
   const itineraryFields: FieldConfig[] = [
     {
@@ -867,23 +884,45 @@ export function TripDetailPage() {
 
             <EntitySection<TripMember>
               title="Miembros y permisos"
-              description="Permisos editables por viaje: propietario, admin, editor y lector."
+              description="Usuarios con acceso efectivo a este viaje."
               icon={ContactsIcon}
               items={trip.members}
-              fields={memberFields}
-              defaultValues={{ userId: '', name: '', email: '', role: 'reader' }}
+              fields={memberFields(assignableRoles)}
+              defaultValues={{ name: '', email: '', role: 'reader' }}
               canEdit={permissions.canManageMembers}
+              canCreate={false}
+              canEditItem={canManageMember}
+              canDeleteItem={canManageMember}
               addLabel="Anadir miembro"
-              onCreate={(values) => addTripItem(trip.id, 'members', values as Omit<TripMember, 'id' | 'tripId'>)}
+              onCreate={() => undefined}
               onUpdate={(id, values) =>
                 updateTripItem(trip.id, 'members', id, values as Partial<Omit<TripMember, 'id' | 'tripId'>>)
               }
-              onDelete={(id) => {
-                const member = trip.members.find((candidate) => candidate.id === id)
-                if (member?.role === 'owner') return
-                deleteTripItem(trip.id, 'members', id)
-              }}
+              onDelete={(id) => deleteTripItem(trip.id, 'members', id)}
               renderItem={(member) => itemText(member.name, `${member.email} | ${tripRoleLabels[member.role]}`)}
+            />
+
+            <EntitySection<TripInvitation>
+              title="Invitaciones pendientes"
+              description="Comparte el viaje por email. Si la persona no existe aun, se activara al iniciar sesion con Google."
+              icon={PeopleIcon}
+              items={trip.invitations.filter((invitation) => invitation.status === 'pending')}
+              fields={invitationFields(assignableRoles)}
+              defaultValues={{ email: '', role: assignableRoles[0] ?? 'reader' }}
+              canEdit={permissions.canManageMembers && assignableRoles.length > 0}
+              schema={tripInvitationSchema}
+              addLabel="Invitar por email"
+              onCreate={(values) => void inviteTripMember(trip.id, values as Pick<TripInvitation, 'email' | 'role'>)}
+              onUpdate={(id, values) =>
+                updateTripItem(trip.id, 'invitations', id, values as Partial<Omit<TripInvitation, 'id' | 'tripId'>>)
+              }
+              onDelete={(id) => deleteTripItem(trip.id, 'invitations', id)}
+              renderItem={(invitation) =>
+                itemText(
+                  invitation.email,
+                  `${tripRoleLabels[invitation.role]} | Pendiente desde ${new Date(invitation.createdAt).toLocaleDateString('es-ES')}`,
+                )
+              }
             />
           </Stack>
         )}

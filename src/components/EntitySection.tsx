@@ -65,6 +65,9 @@ interface EntitySectionProps<T extends { id: string }> {
   fields: FieldConfig[]
   defaultValues: EntityValues
   canEdit: boolean
+  canCreate?: boolean
+  canEditItem?: (item: T) => boolean
+  canDeleteItem?: (item: T) => boolean
   schema?: z.ZodType<unknown>
   emptyLabel?: string
   addLabel?: string
@@ -166,6 +169,9 @@ export function EntitySection<T extends { id: string }>({
   fields,
   defaultValues,
   canEdit,
+  canCreate = canEdit,
+  canEditItem,
+  canDeleteItem,
   schema,
   emptyLabel = 'Todavia no hay elementos.',
   addLabel = 'Anadir',
@@ -232,30 +238,39 @@ export function EntitySection<T extends { id: string }>({
     onReorder(arrayMove(ids, oldIndex, newIndex))
   }
 
-  const renderCard = (item: T, dragHandle?: ReactNode) => (
-    <Card key={item.id} variant="outlined">
-      <CardContent>
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start' }}>
-          {dragHandle}
-          <Box sx={{ flex: 1, minWidth: 0 }}>{renderItem(item)}</Box>
-          {canEdit && (
-            <Stack direction="row" spacing={0.5}>
-              <Tooltip title="Editar">
-                <IconButton size="small" onClick={() => openEdit(item)} aria-label="Editar">
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Eliminar">
-                <IconButton size="small" color="error" onClick={() => onDelete(item.id)} aria-label="Eliminar">
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Stack>
-          )}
-        </Stack>
-      </CardContent>
-    </Card>
-  )
+  const renderCard = (item: T, dragHandle?: ReactNode) => {
+    const itemCanEdit = canEdit && (canEditItem?.(item) ?? true)
+    const itemCanDelete = canEdit && (canDeleteItem?.(item) ?? true)
+
+    return (
+      <Card key={item.id} variant="outlined">
+        <CardContent>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start' }}>
+            {dragHandle}
+            <Box sx={{ flex: 1, minWidth: 0 }}>{renderItem(item)}</Box>
+            {(itemCanEdit || itemCanDelete) && (
+              <Stack direction="row" spacing={0.5}>
+                {itemCanEdit && (
+                  <Tooltip title="Editar">
+                    <IconButton size="small" onClick={() => openEdit(item)} aria-label="Editar">
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {itemCanDelete && (
+                  <Tooltip title="Eliminar">
+                    <IconButton size="small" color="error" onClick={() => onDelete(item.id)} aria-label="Eliminar">
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Stack>
+            )}
+          </Stack>
+        </CardContent>
+      </Card>
+    )
+  }
 
   const list = (
     <Stack spacing={1.5}>
@@ -311,7 +326,7 @@ export function EntitySection<T extends { id: string }>({
               )}
             </Box>
           </Stack>
-          {canEdit && (
+          {canCreate && (
             <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
               {addLabel}
             </Button>

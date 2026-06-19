@@ -39,3 +39,9 @@ export function canAssignRole(currentRole: TripRole, targetRole: TripRole) {
   if (currentRole === 'admin') return targetRole === 'reader' || targetRole === 'editor'
   return false
 }
+
+export function getAssignableRoles(currentRole?: TripRole) {
+  if (currentRole === 'owner') return ['admin', 'editor', 'reader'] satisfies TripRole[]
+  if (currentRole === 'admin') return ['editor', 'reader'] satisfies TripRole[]
+  return [] satisfies TripRole[]
+}

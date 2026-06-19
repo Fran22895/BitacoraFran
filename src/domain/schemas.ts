@@ -86,3 +86,8 @@ export const expenseSchema = z.object({
   cost: moneySchema,
   paid: z.coerce.boolean(),
 })
+
+export const tripInvitationSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Indica un email valido'),
+  role: z.enum(['admin', 'editor', 'reader']),
+})

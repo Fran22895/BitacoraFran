@@ -9,6 +9,7 @@ Supabase usa PostgreSQL con RLS activado. El archivo `supabase/schema.sql` crea 
 - `profiles`: perfil enlazado a `auth.users`.
 - `trips`: datos principales del viaje.
 - `trip_members`: usuarios y roles por viaje.
+- `trip_invitations`: invitaciones pendientes por email para compartir viajes sin conocer UUIDs.
 - `trip_destinations`: destinos estructurados opcionales.
 - `flights`: vuelos, equipaje y extras.
 - `vehicle_rentals`: coche de alquiler y fotos.
@@ -46,6 +47,22 @@ Roles:
 - `reader`: solo consulta y exporta.
 
 Las funciones `can_read_trip`, `can_edit_trip` y `can_manage_trip` centralizan las politicas RLS.
+
+## Invitaciones Por Email
+
+Flujo:
+
+- Propietario/admin llama a `invite_trip_member(trip_id, email, role)`.
+- Si el email ya existe en `profiles`, Supabase crea o actualiza `trip_members`.
+- Si el email todavia no existe, se crea una fila `pending` en `trip_invitations`.
+- Al iniciar sesion con Google, `claim_trip_invitations()` busca invitaciones pendientes del email autenticado y las convierte en miembros reales.
+
+Restricciones:
+
+- No se puede invitar como `owner`.
+- Un `admin` solo puede asignar `editor` o `reader`.
+- Solo `owner` puede asignar `admin`.
+- RLS permite leer invitaciones a miembros del viaje y al email invitado.
 
 ## Storage
 

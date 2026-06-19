@@ -2,6 +2,8 @@ export type TripStatus = 'planned' | 'active' | 'completed' | 'cancelled'
 
 export type TripRole = 'owner' | 'admin' | 'editor' | 'reader'
 
+export type TripInvitationStatus = 'pending' | 'accepted' | 'revoked'
+
 export type FlightLegType = 'ida' | 'vuelta' | 'conexion'
 
 export type PaymentStatus = 'pendiente' | 'reservado' | 'pagado'
@@ -46,6 +48,18 @@ export interface TripMember {
   name: string
   email: string
   role: TripRole
+}
+
+export interface TripInvitation {
+  id: string
+  tripId: string
+  email: string
+  role: Exclude<TripRole, 'owner'>
+  status: TripInvitationStatus
+  invitedBy?: string
+  acceptedBy?: string
+  createdAt: string
+  acceptedAt?: string
 }
 
 export interface FlightBaggage {
@@ -240,6 +254,7 @@ export interface Trip {
   createdAt: string
   updatedAt: string
   members: TripMember[]
+  invitations: TripInvitation[]
   flights: Flight[]
   vehicleRentals: VehicleRental[]
   accommodations: Accommodation[]
@@ -255,6 +270,7 @@ export interface Trip {
 
 export type TripCollectionKey =
   | 'members'
+  | 'invitations'
   | 'flights'
   | 'vehicleRentals'
   | 'accommodations'

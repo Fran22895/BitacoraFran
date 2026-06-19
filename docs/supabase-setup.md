@@ -26,6 +26,8 @@ Reinicia `npm run dev` despues de cambiar variables.
 5. En Authentication > URL Configuration, anade `http://localhost:5173` para desarrollo.
 6. Cuando despliegues, anade tambien el dominio de Vercel y el dominio personalizado si existe.
 
+Para el OAuth basico de Google solo se usan scopes de identidad (`openid`, `email`, `profile`). No se necesitan APIs de pago para iniciar sesion con Google. Si en el futuro se piden scopes sensibles o restringidos, Google puede exigir verificacion adicional.
+
 ## 4. Ejecutar SQL
 
 Abre SQL Editor y ejecuta `supabase/schema.sql` en un proyecto limpio.
@@ -35,6 +37,7 @@ El script crea:
 - Tablas.
 - Tipos enum.
 - Funciones de permisos.
+- RPCs `invite_trip_member` y `claim_trip_invitations` para compartir viajes por email.
 - Politicas RLS.
 - Bucket privado `trip-documents`.
 

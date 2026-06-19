@@ -2,14 +2,24 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
 import { createId } from '../domain/ids'
 import { demoProfile, seedTrips } from '../domain/seed'
-import type { Trip, TripCollectionItem, TripCollectionKey, TripMember, TripStatus, UserProfile } from '../domain/types'
+import type {
+  Trip,
+  TripCollectionItem,
+  TripCollectionKey,
+  TripInvitation,
+  TripMember,
+  TripStatus,
+  UserProfile,
+} from '../domain/types'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 import {
   addRemoteTripItem,
+  claimRemoteTripInvitations,
   createRemoteTrip,
   deleteRemoteTrip,
   deleteRemoteTripItem,
   fetchRemoteTrips,
+  inviteRemoteTripMember,
   reorderRemoteItineraryItems,
   updateRemoteTrip,
   updateRemoteTripItem,
@@ -48,6 +58,7 @@ interface TravelLogContextValue {
   createTrip: (draft: TripDraft) => Trip
   updateTrip: (tripId: string, patch: Partial<TripDraft>) => void
   deleteTrip: (tripId: string) => void
+  inviteTripMember: (tripId: string, invite: Pick<TripInvitation, 'email' | 'role'>) => Promise<void>
   addTripItem: <K extends TripCollectionKey>(tripId: string, collection: K, item: Omit<TripCollectionItem<K>, 'id' | 'tripId'>) => void
   updateTripItem: <K extends TripCollectionKey>(
     tripId: string,
@@ -61,14 +72,21 @@ interface TravelLogContextValue {
 
 const TravelLogContext = createContext<TravelLogContextValue | undefined>(undefined)
 
+function normalizeTrip(trip: Trip): Trip {
+  return {
+    ...trip,
+    invitations: trip.invitations ?? [],
+  }
+}
+
 function readStoredTrips() {
   const storedTrips = localStorage.getItem(tripsStorageKey)
-  if (!storedTrips) return seedTrips
+  if (!storedTrips) return seedTrips.map(normalizeTrip)
 
   try {
-    return JSON.parse(storedTrips) as Trip[]
+    return (JSON.parse(storedTrips) as Trip[]).map(normalizeTrip)
   } catch {
-    return seedTrips
+    return seedTrips.map(normalizeTrip)
   }
 }
 
@@ -110,6 +128,7 @@ function createEmptyTrip(draft: TripDraft, owner: UserProfile, id = createId('tr
     createdAt: now,
     updatedAt: now,
     members: [ownerMember],
+    invitations: [],
     flights: [],
     vehicleRentals: [],
     accommodations: [],
@@ -186,6 +205,7 @@ export function TravelLogProvider({ children }: PropsWithChildren) {
 
       try {
         const nextProfile = await upsertProfileFromUser(client, user)
+        await claimRemoteTripInvitations(client)
         const remoteTrips = await fetchRemoteTrips(client)
         setProfile(nextProfile)
         setAuthMode('remote')
@@ -215,6 +235,7 @@ export function TravelLogProvider({ children }: PropsWithChildren) {
         setIsLoading(true)
         try {
           const nextProfile = await upsertProfileFromUser(client, user)
+          await claimRemoteTripInvitations(client)
           const remoteTrips = await fetchRemoteTrips(client)
           setProfile(nextProfile)
           setAuthMode('remote')
@@ -291,6 +312,47 @@ export function TravelLogProvider({ children }: PropsWithChildren) {
       void deleteRemoteTrip(supabase, tripId).catch(reportError)
     }
   }, [isRemoteMode, reportError])
+
+  const inviteTripMember = useCallback(
+    async (tripId: string, invite: Pick<TripInvitation, 'email' | 'role'>) => {
+      const normalizedEmail = invite.email.trim().toLowerCase()
+      setLastError(null)
+
+      if (isRemoteMode && supabase) {
+        setIsLoading(true)
+        try {
+          const remoteTrip = await inviteRemoteTripMember(supabase, tripId, normalizedEmail, invite.role)
+          setTrips((currentTrips) => currentTrips.map((trip) => (trip.id === tripId ? remoteTrip : trip)))
+        } catch (error) {
+          reportError(error)
+          throw error
+        } finally {
+          setIsLoading(false)
+        }
+        return
+      }
+
+      const now = new Date().toISOString()
+      setTrips((currentTrips) =>
+        currentTrips.map((trip) => {
+          if (trip.id !== tripId) return trip
+          const withoutSameEmail = trip.invitations.filter((candidate) => candidate.email !== normalizedEmail)
+          const invitation: TripInvitation = {
+            id: createId('invitation'),
+            tripId,
+            email: normalizedEmail,
+            role: invite.role,
+            status: 'pending',
+            invitedBy: profile?.id,
+            createdAt: now,
+          }
+
+          return touchTrip({ ...trip, invitations: [invitation, ...withoutSameEmail] })
+        }),
+      )
+    },
+    [isRemoteMode, profile?.id, reportError],
+  )
 
   const addTripItem = useCallback(
     <K extends TripCollectionKey>(tripId: string, collection: K, item: Omit<TripCollectionItem<K>, 'id' | 'tripId'>) => {
@@ -423,6 +485,7 @@ export function TravelLogProvider({ children }: PropsWithChildren) {
       createTrip,
       updateTrip,
       deleteTrip,
+      inviteTripMember,
       addTripItem,
       updateTripItem,
       deleteTripItem,
@@ -440,6 +503,7 @@ export function TravelLogProvider({ children }: PropsWithChildren) {
       createTrip,
       updateTrip,
       deleteTrip,
+      inviteTripMember,
       addTripItem,
       updateTripItem,
       deleteTripItem,

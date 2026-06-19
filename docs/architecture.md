@@ -21,6 +21,12 @@ La app tiene dos modos:
 
 El store expone operaciones CRUD genericas sobre viajes y colecciones internas. En remoto hace actualizaciones optimistas y muestra errores si Supabase rechaza la operacion.
 
+## Multiusuario
+
+El acceso efectivo vive en `trip_members`. Para compartir sin conocer UUIDs internos, la app usa `trip_invitations`: propietario o admin invitan por email y rol. Si el email ya corresponde a un perfil existente, Supabase crea o actualiza el miembro; si no existe, deja una invitacion pendiente. En cada login con Google, `claim_trip_invitations()` convierte invitaciones pendientes del email autenticado en miembros reales antes de cargar el dashboard.
+
+La UI nunca decide la seguridad por si sola: oculta botones segun rol para mejorar la experiencia, pero RLS y las RPC de Supabase aplican las reglas reales.
+
 ## Rutas
 
 - `/login`: login con Google cuando Supabase esta configurado o demo local.
