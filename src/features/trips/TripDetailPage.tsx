@@ -1,6 +1,7 @@
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import ContactsIcon from '@mui/icons-material/Contacts'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DeleteIcon from '@mui/icons-material/Delete'
 import DescriptionIcon from '@mui/icons-material/Description'
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar'
@@ -267,6 +268,11 @@ function GoogleMapsButton({ url, label = 'Abrir en Google Maps' }: { url?: strin
   )
 }
 
+function extractReservationUrl(notes?: string) {
+  const match = notes?.match(/Ficha (?:Civitatis|oficial):\s*(https?:\/\/\S+)/i)
+  return match?.[1]
+}
+
 function itemText(primary: string, secondary?: string) {
   return (
     <Stack spacing={0.5}>
@@ -290,6 +296,7 @@ export function TripDetailPage() {
     trips,
     updateTrip,
     deleteTrip,
+    duplicateTrip,
     inviteTripMember,
     addTripItem,
     updateTripItem,
@@ -300,6 +307,7 @@ export function TripDetailPage() {
   const trip = trips.find((candidate) => candidate.id === tripId)
   const [tab, setTab] = useState(0)
   const [tripDialogOpen, setTripDialogOpen] = useState(false)
+  const [showAllIssues, setShowAllIssues] = useState(false)
 
   const permissions = trip ? getPermissionsForTrip(trip, profile) : undefined
   const totals = trip ? calculateTripTotals(trip) : null
@@ -349,6 +357,7 @@ export function TripDetailPage() {
     { name: 'startsAt', label: 'Fecha y hora', type: 'datetime-local' },
     { name: 'location', label: 'Ubicacion' },
     { name: 'googleMapsUrl', label: 'Google Maps', type: 'url', gridSpan: 12 },
+    { name: 'reservationUrl', label: 'Link reserva', type: 'url', gridSpan: 12 },
     ...moneyFields('cost'),
     { name: 'bookingReference', label: 'Reserva' },
     {
@@ -389,6 +398,12 @@ export function TripDetailPage() {
   const removeTrip = () => {
     deleteTrip(trip.id)
     navigate('/')
+  }
+
+  const duplicateAndOpen = () => {
+    void duplicateTrip(trip.id)
+      .then((duplicatedTrip) => navigate(`/trips/${duplicatedTrip.id}`))
+      .catch(() => undefined)
   }
 
   return (
@@ -432,6 +447,9 @@ export function TripDetailPage() {
               )}
               <Button variant="outlined" color="inherit" startIcon={<DescriptionIcon />} onClick={exportPdf}>
                 Exportar PDF
+              </Button>
+              <Button variant="outlined" color="inherit" startIcon={<ContentCopyIcon />} onClick={duplicateAndOpen}>
+                Duplicar
               </Button>
               {permissions.canDeleteTrip && (
                 <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={removeTrip}>
@@ -496,8 +514,12 @@ export function TripDetailPage() {
 
             {issues.length > 0 && (
               <Alert severity="warning">
-                Hay {issues.length} datos incompletos: {issues.slice(0, 4).map((issue) => issue.label).join('; ')}
-                {issues.length > 4 ? '...' : ''}
+                Hay {issues.length} datos incompletos: {(showAllIssues ? issues : issues.slice(0, 4)).map((issue) => issue.label).join('; ')}
+                {issues.length > 4 && (
+                  <Button size="small" onClick={() => setShowAllIssues((current) => !current)} sx={{ ml: 1 }}>
+                    {showAllIssues ? 'Ver menos' : 'Ver mas'}
+                  </Button>
+                )}
               </Alert>
             )}
 
@@ -823,6 +845,7 @@ export function TripDetailPage() {
                 startsAt: '',
                 location: '',
                 googleMapsUrl: '',
+                reservationUrl: '',
                 cost: { amount: 0, currency: trip.baseCurrency, conversionRate: 1 },
                 bookingReference: '',
                 paymentStatus: 'pendiente',
@@ -836,15 +859,22 @@ export function TripDetailPage() {
                 updateTripItem(trip.id, 'activities', id, values as Partial<Omit<Activity, 'id' | 'tripId'>>)
               }
               onDelete={(id) => deleteTripItem(trip.id, 'activities', id)}
-              renderItem={(activity) => (
-                <Stack spacing={0.5}>
-                  {itemText(
-                    activity.name,
-                    `${activity.provider || 'Sin proveedor'} | ${cleanDateTime(activity.startsAt)} | ${formatMoney(activity.cost.amount, activity.cost.currency)} | ${paymentStatusLabels[activity.paymentStatus]}`,
-                  )}
-                  <GoogleMapsButton url={activity.googleMapsUrl} />
-                </Stack>
-              )}
+              renderItem={(activity) => {
+                const reservationUrl = activity.reservationUrl ?? extractReservationUrl(activity.notes)
+
+                return (
+                  <Stack spacing={0.5}>
+                    {itemText(
+                      activity.name,
+                      `${activity.provider || 'Sin proveedor'} | ${cleanDateTime(activity.startsAt)} | ${formatMoney(activity.cost.amount, activity.cost.currency)} | ${paymentStatusLabels[activity.paymentStatus]}`,
+                    )}
+                    <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                      <GoogleMapsButton url={activity.googleMapsUrl} />
+                      <GoogleMapsButton url={reservationUrl} label="Reserva" />
+                    </Stack>
+                  </Stack>
+                )
+              }}
             />
 
             <EntitySection<Expense>

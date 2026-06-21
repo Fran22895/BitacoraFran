@@ -53,6 +53,7 @@ export const activitySchema = z.object({
   startsAt: optionalText,
   location: optionalText,
   googleMapsUrl: optionalText,
+  reservationUrl: optionalText,
   cost: moneySchema,
   bookingReference: optionalText,
   paymentStatus: z.enum(['pendiente', 'reservado', 'pagado']),

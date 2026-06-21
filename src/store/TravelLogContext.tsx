@@ -18,6 +18,7 @@ import {
   createRemoteTrip,
   deleteRemoteTrip,
   deleteRemoteTripItem,
+  duplicateRemoteTrip,
   fetchRemoteTrips,
   inviteRemoteTripMember,
   reorderRemoteItineraryItems,
@@ -58,6 +59,7 @@ interface TravelLogContextValue {
   createTrip: (draft: TripDraft) => Trip
   updateTrip: (tripId: string, patch: Partial<TripDraft>) => void
   deleteTrip: (tripId: string) => void
+  duplicateTrip: (tripId: string) => Promise<Trip>
   inviteTripMember: (tripId: string, invite: Pick<TripInvitation, 'email' | 'role'>) => Promise<void>
   addTripItem: <K extends TripCollectionKey>(tripId: string, collection: K, item: Omit<TripCollectionItem<K>, 'id' | 'tripId'>) => void
   updateTripItem: <K extends TripCollectionKey>(
@@ -142,6 +144,82 @@ function createEmptyTrip(draft: TripDraft, owner: UserProfile, id = createId('tr
     documents: [],
     journalEntries: [],
     expenses: [],
+  }
+}
+
+function cloneValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
+function duplicateTripForOwner(sourceTrip: Trip, owner: UserProfile): Trip {
+  const tripId = createId('trip')
+  const now = new Date().toISOString()
+  const dayIdMap = new Map<string, string>()
+  const ownerMember: TripMember = {
+    id: createId('member'),
+    tripId,
+    userId: owner.id,
+    name: owner.name,
+    email: owner.email,
+    role: 'owner',
+  }
+
+  const itineraryDays = sourceTrip.itineraryDays.map((day) => {
+    const id = createId('day')
+    dayIdMap.set(day.id, id)
+    return { ...cloneValue(day), id, tripId }
+  })
+  const remapDayId = (dayId?: string) => (dayId ? dayIdMap.get(dayId) : undefined)
+  const fallbackDayId = itineraryDays[0]?.id ?? ''
+
+  return {
+    ...cloneValue(sourceTrip),
+    id: tripId,
+    title: `${sourceTrip.title} (copia)`,
+    ownerId: owner.id,
+    createdAt: now,
+    updatedAt: now,
+    members: [ownerMember],
+    invitations: [],
+    flights: sourceTrip.flights.map((flight) => ({ ...cloneValue(flight), id: createId('flight'), tripId })),
+    vehicleRentals: sourceTrip.vehicleRentals.map((rental) => ({
+      ...cloneValue(rental),
+      id: createId('vehicle'),
+      tripId,
+    })),
+    accommodations: sourceTrip.accommodations.map((accommodation) => ({
+      ...cloneValue(accommodation),
+      id: createId('accommodation'),
+      tripId,
+    })),
+    itineraryDays,
+    itineraryItems: sourceTrip.itineraryItems.map((item) => ({
+      ...cloneValue(item),
+      id: createId('item'),
+      tripId,
+      dayId: remapDayId(item.dayId) ?? fallbackDayId,
+    })),
+    activities: sourceTrip.activities.map((activity) => ({
+      ...cloneValue(activity),
+      id: createId('activity'),
+      tripId,
+      dayId: remapDayId(activity.dayId),
+    })),
+    restaurants: sourceTrip.restaurants.map((restaurant) => ({
+      ...cloneValue(restaurant),
+      id: createId('restaurant'),
+      tripId,
+      dayId: remapDayId(restaurant.dayId) ?? fallbackDayId,
+    })),
+    contacts: sourceTrip.contacts.map((contact) => ({ ...cloneValue(contact), id: createId('contact'), tripId })),
+    insurances: sourceTrip.insurances.map((insurance) => ({
+      ...cloneValue(insurance),
+      id: createId('insurance'),
+      tripId,
+    })),
+    documents: sourceTrip.documents.map((document) => ({ ...cloneValue(document), id: createId('document'), tripId })),
+    journalEntries: sourceTrip.journalEntries.map((entry) => ({ ...cloneValue(entry), id: createId('journal'), tripId })),
+    expenses: sourceTrip.expenses.map((expense) => ({ ...cloneValue(expense), id: createId('expense'), tripId })),
   }
 }
 
@@ -320,6 +398,34 @@ export function TravelLogProvider({ children }: PropsWithChildren) {
     }
   }, [isRemoteMode, reportError])
 
+  const duplicateTrip = useCallback(
+    async (tripId: string) => {
+      const sourceTrip = trips.find((trip) => trip.id === tripId)
+      if (!sourceTrip) throw new Error('No se ha encontrado el viaje para duplicar.')
+
+      setLastError(null)
+
+      if (isRemoteMode && supabase && profile) {
+        setIsLoading(true)
+        try {
+          const duplicatedTrip = await duplicateRemoteTrip(supabase, tripId)
+          setTrips((currentTrips) => [duplicatedTrip, ...currentTrips])
+          return duplicatedTrip
+        } catch (error) {
+          reportError(error)
+          throw error
+        } finally {
+          setIsLoading(false)
+        }
+      }
+
+      const duplicatedTrip = duplicateTripForOwner(sourceTrip, profile ?? demoProfile)
+      setTrips((currentTrips) => [duplicatedTrip, ...currentTrips])
+      return duplicatedTrip
+    },
+    [isRemoteMode, profile, reportError, trips],
+  )
+
   const inviteTripMember = useCallback(
     async (tripId: string, invite: Pick<TripInvitation, 'email' | 'role'>) => {
       const normalizedEmail = invite.email.trim().toLowerCase()
@@ -492,6 +598,7 @@ export function TravelLogProvider({ children }: PropsWithChildren) {
       createTrip,
       updateTrip,
       deleteTrip,
+      duplicateTrip,
       inviteTripMember,
       addTripItem,
       updateTripItem,
@@ -510,6 +617,7 @@ export function TravelLogProvider({ children }: PropsWithChildren) {
       createTrip,
       updateTrip,
       deleteTrip,
+      duplicateTrip,
       inviteTripMember,
       addTripItem,
       updateTripItem,

@@ -182,6 +182,7 @@ export interface Activity {
   startsAt?: string
   location?: string
   googleMapsUrl?: string
+  reservationUrl?: string
   cost: MoneyAmount
   bookingReference?: string
   paymentStatus: PaymentStatus
