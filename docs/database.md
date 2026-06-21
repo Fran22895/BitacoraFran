@@ -31,7 +31,7 @@ Las referencias geograficas pueden guardar coordenadas manuales y enlaces de Goo
 - `vehicle_rentals`: `pickup_latitude`, `pickup_longitude`, `dropoff_latitude`, `dropoff_longitude`, `pickup_google_maps_url`, `dropoff_google_maps_url`.
 - `accommodations`: `address`, `google_maps_url`.
 - `itinerary_items`: `latitude`, `longitude`, `google_maps_url`.
-- `activities`: `location`, `google_maps_url`.
+- `activities`: `location`, `google_maps_url`, `reservation_url`.
 - `restaurants`: `location`, `google_maps_url`.
 - `contacts`: `address`, `google_maps_url`.
 
@@ -61,6 +61,10 @@ Roles:
 - `reader`: solo consulta y exporta.
 
 Las funciones `can_read_trip`, `can_edit_trip` y `can_manage_trip` centralizan las politicas RLS.
+
+## Duplicado De Viajes Compartidos
+
+La funcion `duplicate_trip(source_trip_id, duplicate_title)` permite que cualquier usuario con lectura sobre un viaje cree una copia propia. La copia asigna al usuario autenticado como `owner`, no arrastra miembros ni invitaciones, y remapea los IDs de dias para conservar correctamente puntos de itinerario, actividades y restaurantes.
 
 ## Invitaciones Por Email
 

@@ -1,4 +1,5 @@
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import ReportProblemIcon from '@mui/icons-material/ReportProblem'
@@ -37,7 +38,7 @@ const allStatuses = 'all'
 
 export function DashboardPage() {
   const navigate = useNavigate()
-  const { profile, trips, createTrip, updateTrip, deleteTrip } = useTravelLog()
+  const { profile, trips, createTrip, updateTrip, deleteTrip, duplicateTrip } = useTravelLog()
   const [tripDialogOpen, setTripDialogOpen] = useState(false)
   const [editingTrip, setEditingTrip] = useState<Trip | undefined>()
   const [statusFilter, setStatusFilter] = useState<TripStatus | typeof allStatuses>(allStatuses)
@@ -88,6 +89,12 @@ export function DashboardPage() {
   const openEdit = (trip: Trip) => {
     setEditingTrip(trip)
     setTripDialogOpen(true)
+  }
+
+  const duplicateAndOpen = (trip: Trip) => {
+    void duplicateTrip(trip.id)
+      .then((duplicatedTrip) => navigate(`/trips/${duplicatedTrip.id}`))
+      .catch(() => undefined)
   }
 
   return (
@@ -206,6 +213,13 @@ export function DashboardPage() {
                 <CardActions sx={{ mt: 'auto', justifyContent: 'space-between' }}>
                   <Button onClick={() => navigate(`/trips/${trip.id}`)}>Abrir</Button>
                   <Stack direction="row">
+                    {permissions.canRead && (
+                      <Tooltip title="Duplicar viaje">
+                        <IconButton onClick={() => duplicateAndOpen(trip)} aria-label="Duplicar viaje">
+                          <ContentCopyIcon />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     {permissions.canEdit && (
                       <Tooltip title="Editar viaje">
                         <IconButton onClick={() => openEdit(trip)} aria-label="Editar viaje">

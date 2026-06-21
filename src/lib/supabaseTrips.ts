@@ -433,6 +433,7 @@ const collectionMappers = {
       ...(item.startsAt !== undefined ? { starts_at: item.startsAt } : {}),
       ...(item.location !== undefined ? { location: item.location } : {}),
       ...(item.googleMapsUrl !== undefined ? { google_maps_url: item.googleMapsUrl } : {}),
+      ...(item.reservationUrl !== undefined ? { reservation_url: item.reservationUrl } : {}),
       ...(item.cost !== undefined ? { cost: item.cost } : {}),
       ...(item.bookingReference !== undefined ? { booking_reference: item.bookingReference } : {}),
       ...(item.paymentStatus !== undefined ? { payment_status: item.paymentStatus } : {}),
@@ -447,6 +448,7 @@ const collectionMappers = {
       startsAt: optionalText(row.starts_at),
       location: optionalText(row.location),
       googleMapsUrl: optionalText(row.google_maps_url),
+      reservationUrl: optionalText(row.reservation_url),
       cost: money(row.cost),
       bookingReference: optionalText(row.booking_reference),
       paymentStatus: text(row.payment_status, 'pendiente') as Activity['paymentStatus'],
@@ -742,6 +744,16 @@ export async function updateRemoteTrip(client: SupabaseClient, tripId: string, p
 export async function deleteRemoteTrip(client: SupabaseClient, tripId: string) {
   const { error } = await client.from('trips').delete().eq('id', tripId)
   if (error) throw error
+}
+
+export async function duplicateRemoteTrip(client: SupabaseClient, tripId: string, title?: string) {
+  const { data, error } = await client.rpc('duplicate_trip', {
+    source_trip_id: tripId,
+    duplicate_title: title ?? null,
+  })
+  if (error) throw error
+
+  return fetchRemoteTrip(client, String(data))
 }
 
 export async function addRemoteTripItem<K extends TripCollectionKey>(
