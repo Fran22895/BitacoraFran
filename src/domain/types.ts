@@ -263,6 +263,7 @@ export interface Trip {
   id: string
   title: string
   status: TripStatus
+  isPublic: boolean
   destinations: string[]
   startDate: string
   endDate: string

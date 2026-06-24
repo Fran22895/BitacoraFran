@@ -5,9 +5,11 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControlLabel,
   IconButton,
   MenuItem,
   Stack,
+  Switch,
   TextField,
   Tooltip,
 } from '@mui/material'
@@ -21,6 +23,7 @@ import type { TripDraft } from '../store/TravelLogContext'
 type TripFormValues = {
   title: string
   status: TripDraft['status']
+  isPublic: boolean
   destinationsText: string
   startDate: string
   endDate: string
@@ -54,6 +57,7 @@ function getDefaultValues(trip?: Trip): TripFormValues {
   return {
     title: trip?.title ?? '',
     status: trip?.status ?? 'planned',
+    isPublic: trip?.isPublic ?? false,
     destinationsText: listToText(trip?.destinations),
     startDate: trip?.startDate ?? new Date().toISOString().slice(0, 10),
     endDate: trip?.endDate ?? new Date().toISOString().slice(0, 10),
@@ -105,6 +109,7 @@ export function TripFormDialog({ open, trip, onClose, onSave }: TripFormDialogPr
     onSave({
       title: values.title,
       status: values.status,
+      isPublic: values.isPublic,
       destinations: textToList(values.destinationsText),
       startDate: values.startDate,
       endDate: values.endDate,
@@ -166,6 +171,17 @@ export function TripFormDialog({ open, trip, onClose, onSave }: TripFormDialogPr
               error={Boolean(errors.budgetAmount)}
               helperText={errors.budgetAmount?.message}
               fullWidth
+            />
+            <Controller
+              control={control}
+              name="isPublic"
+              render={({ field }) => (
+                <FormControlLabel
+                  control={<Switch checked={Boolean(field.value)} onChange={(event) => field.onChange(event.target.checked)} />}
+                  label="Viaje publico"
+                  sx={{ minWidth: { md: 180 }, alignSelf: 'center' }}
+                />
+              )}
             />
           </Stack>
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>

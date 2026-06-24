@@ -7,7 +7,7 @@ Supabase usa PostgreSQL con RLS activado. El archivo `supabase/schema.sql` crea 
 ## Tablas
 
 - `profiles`: perfil enlazado a `auth.users`.
-- `trips`: datos principales del viaje.
+- `trips`: datos principales del viaje, incluida la visibilidad publica (`is_public`).
 - `trip_members`: usuarios y roles por viaje.
 - `trip_invitations`: invitaciones pendientes por email para compartir viajes sin conocer UUIDs.
 - `trip_destinations`: destinos estructurados opcionales.
@@ -60,11 +60,14 @@ Roles:
 - `editor`: crea, edita y elimina contenido.
 - `reader`: solo consulta y exporta.
 
-Las funciones `can_read_trip`, `can_edit_trip` y `can_manage_trip` centralizan las politicas RLS.
+Las funciones `can_read_trip`, `can_edit_trip`, `can_manage_trip` e `is_trip_public` centralizan las politicas RLS.
+Un viaje publico permite leer la cabecera del viaje y su itinerario (`itinerary_days`, `itinerary_items`) sin abrir vuelos, alojamiento, coche, contactos, seguros, documentos, diario ni gastos.
 
 ## Duplicado De Viajes Compartidos
 
-La funcion `duplicate_trip(source_trip_id, duplicate_title)` permite que cualquier usuario con lectura sobre un viaje cree una copia propia. La copia asigna al usuario autenticado como `owner`, no arrastra miembros ni invitaciones, y remapea los IDs de dias para conservar correctamente puntos de itinerario, actividades y restaurantes.
+La funcion `duplicate_trip(source_trip_id, duplicate_title)` permite que cualquier usuario con lectura sobre un viaje cree una copia propia. La copia asigna al usuario autenticado como `owner`, nace como privada, no arrastra miembros ni invitaciones, y remapea los IDs de dias para conservar correctamente puntos de itinerario.
+
+Cuando el viaje es publico, el duplicado copia cabecera e itinerario. No copia vuelos, alojamientos, vehiculos, actividades con reservas, restaurantes con reservas, contactos, seguros, documentos, diario ni gastos. El duplicado completo se conserva para viajes privados donde el usuario ya tiene lectura por membresia.
 
 ## Invitaciones Por Email
 

@@ -27,7 +27,7 @@ export function getPermissionsForTrip(trip: Trip, user?: UserProfile | null): Pe
 
   return {
     role,
-    canRead: rank >= roleRank.reader,
+    canRead: rank >= roleRank.reader || trip.isPublic,
     canEdit: rank >= roleRank.editor,
     canManageMembers: rank >= roleRank.admin,
     canDeleteTrip: rank >= roleRank.owner,

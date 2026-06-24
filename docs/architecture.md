@@ -25,7 +25,9 @@ Los datos semilla solo se cargan al seleccionar "Usar Demo local". En modo remot
 
 ## Multiusuario
 
-El acceso efectivo vive en `trip_members`. Para compartir sin conocer UUIDs internos, la app usa `trip_invitations`: propietario o admin invitan por email y rol. Si el email ya corresponde a un perfil existente, Supabase crea o actualiza el miembro; si no existe, deja una invitacion pendiente. En cada login con Google, `claim_trip_invitations()` convierte invitaciones pendientes del email autenticado en miembros reales antes de cargar el dashboard.
+El acceso efectivo de edicion vive en `trip_members`. Para compartir sin conocer UUIDs internos, la app usa `trip_invitations`: propietario o admin invitan por email y rol. Si el email ya corresponde a un perfil existente, Supabase crea o actualiza el miembro; si no existe, deja una invitacion pendiente. En cada login con Google, `claim_trip_invitations()` convierte invitaciones pendientes del email autenticado en miembros reales antes de cargar el dashboard.
+
+Los viajes con `is_public = true` aparecen a usuarios autenticados aunque no sean miembros, pero RLS solo expone la cabecera y el itinerario publico. El duplicado desde acceso publico crea una copia privada sin vuelos, alojamientos, coches, reservas, seguros, documentos, contactos, diario ni gastos.
 
 La UI nunca decide la seguridad por si sola: oculta botones segun rol para mejorar la experiencia, pero RLS y las RPC de Supabase aplican las reglas reales.
 

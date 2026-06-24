@@ -38,3 +38,18 @@ a {
 .leaflet-container {
   font-family: inherit;
 }
+
+.leaflet-tooltip.trip-map-marker-number {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.leaflet-tooltip.trip-map-marker-number::before {
+  display: none;
+}

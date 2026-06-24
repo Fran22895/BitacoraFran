@@ -11,6 +11,7 @@ export const moneySchema = z.object({
 export const tripFormSchema = z.object({
   title: z.string().min(2, 'El viaje necesita un nombre'),
   status: z.enum(['planned', 'active', 'completed', 'cancelled']),
+  isPublic: z.coerce.boolean().default(false),
   destinationsText: z.string().min(2, 'Anade al menos un destino'),
   startDate: z.string().min(1, 'Indica fecha de inicio'),
   endDate: z.string().min(1, 'Indica fecha de fin'),

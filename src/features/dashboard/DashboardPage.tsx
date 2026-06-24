@@ -2,6 +2,8 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
+import LockIcon from '@mui/icons-material/Lock'
+import PublicIcon from '@mui/icons-material/Public'
 import ReportProblemIcon from '@mui/icons-material/ReportProblem'
 import EventAvailableIcon from '@mui/icons-material/EventAvailable'
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff'
@@ -193,7 +195,16 @@ export function DashboardPage() {
                             {getTripDateRangeLabel(trip.startDate, trip.endDate)}
                           </Typography>
                         </Box>
-                        <Chip label={tripStatusLabels[trip.status]} size="small" color={trip.status === 'active' ? 'success' : 'default'} />
+                        <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          <Chip label={tripStatusLabels[trip.status]} size="small" color={trip.status === 'active' ? 'success' : 'default'} />
+                          <Chip
+                            icon={trip.isPublic ? <PublicIcon /> : <LockIcon />}
+                            label={trip.isPublic ? 'Publico' : 'Privado'}
+                            size="small"
+                            color={trip.isPublic ? 'info' : 'default'}
+                            variant={trip.isPublic ? 'filled' : 'outlined'}
+                          />
+                        </Stack>
                       </Stack>
                       <Typography variant="body2">{trip.destinations.join(' -> ')}</Typography>
                       <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>

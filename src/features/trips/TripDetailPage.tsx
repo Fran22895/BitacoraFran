@@ -11,10 +11,12 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable'
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff'
 import HotelIcon from '@mui/icons-material/Hotel'
 import LocalActivityIcon from '@mui/icons-material/LocalActivity'
+import LockIcon from '@mui/icons-material/Lock'
 import MapIcon from '@mui/icons-material/Map'
 import NoteAltIcon from '@mui/icons-material/NoteAlt'
 import PeopleIcon from '@mui/icons-material/People'
 import PhoneIcon from '@mui/icons-material/Phone'
+import PublicIcon from '@mui/icons-material/Public'
 import RestaurantIcon from '@mui/icons-material/Restaurant'
 import ShieldIcon from '@mui/icons-material/Shield'
 import {
@@ -426,7 +428,13 @@ export function TripDetailPage() {
           <Stack spacing={2} sx={{ maxWidth: 900 }}>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
               <Chip label={tripStatusLabels[trip.status]} color="primary" />
-              <Chip label={permissions.role ? tripRoleLabels[permissions.role] : 'Sin rol'} variant="filled" />
+              <Chip
+                icon={trip.isPublic ? <PublicIcon /> : <LockIcon />}
+                label={trip.isPublic ? 'Publico' : 'Privado'}
+                color={trip.isPublic ? 'info' : 'default'}
+                variant="filled"
+              />
+              {permissions.role && <Chip label={tripRoleLabels[permissions.role]} variant="filled" />}
               {trip.tags.map((tag) => (
                 <Chip key={tag} label={tag} variant="outlined" sx={{ color: '#fff', borderColor: 'rgba(255,255,255,0.5)' }} />
               ))}

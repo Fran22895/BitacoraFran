@@ -32,6 +32,15 @@ describe('permisos por viaje', () => {
     expect(permissions.canEdit).toBe(false)
   })
 
+  it('permite leer viajes publicos sin conceder permisos de edicion', () => {
+    const publicTrip = { ...trip, isPublic: true }
+    const permissions = getPermissionsForTrip(publicTrip, { id: 'user_out', name: 'Out', email: 'out@example.com' })
+
+    expect(permissions.canRead).toBe(true)
+    expect(permissions.canEdit).toBe(false)
+    expect(permissions.canManageMembers).toBe(false)
+  })
+
   it('limita roles asignables para propietarios y admins', () => {
     expect(getAssignableRoles('owner')).toEqual(['admin', 'editor', 'reader'])
     expect(getAssignableRoles('admin')).toEqual(['editor', 'reader'])

@@ -18,6 +18,7 @@ create table if not exists public.trips (
   owner_id uuid not null references public.profiles(id) on delete cascade,
   title text not null,
   status public.trip_status not null default 'planned',
+  is_public boolean not null default false,
   destinations text[] not null default '{}',
   start_date date not null,
   end_date date not null,
@@ -30,6 +31,10 @@ create table if not exists public.trips (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create index if not exists trips_public_start_date_idx
+on public.trips (start_date desc)
+where is_public = true;
 
 create table if not exists public.trip_members (
   id uuid primary key default gen_random_uuid(),
@@ -286,6 +291,16 @@ returns boolean language sql stable security definer set search_path = public as
   select public.get_trip_role(target_trip_id) is not null
 $$;
 
+create or replace function public.is_trip_public(target_trip_id uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1
+    from public.trips
+    where id = target_trip_id
+      and is_public = true
+  )
+$$;
+
 create or replace function public.can_edit_trip(target_trip_id uuid)
 returns boolean language sql stable security definer set search_path = public as $$
   select coalesce(public.trip_role_rank(public.get_trip_role(target_trip_id)), 0) >= 2
@@ -331,6 +346,7 @@ create policy "profiles_update_own" on public.profiles for update using (id = au
 create policy "profiles_insert_own" on public.profiles for insert with check (id = auth.uid());
 
 create policy "trips_select_member" on public.trips for select using (public.can_read_trip(id));
+create policy "trips_select_public" on public.trips for select using (is_public = true);
 create policy "trips_insert_owner" on public.trips for insert with check (owner_id = auth.uid());
 create policy "trips_update_editor" on public.trips for update using (public.can_edit_trip(id)) with check (public.can_edit_trip(id));
 create policy "trips_delete_owner" on public.trips for delete using (owner_id = auth.uid());
@@ -390,6 +406,14 @@ begin
     execute format('create policy %I on public.%I for delete using (public.can_edit_trip(trip_id))', table_name || '_delete', table_name);
   end loop;
 end $$;
+
+create policy "itinerary_days_public_select"
+on public.itinerary_days for select
+using (public.is_trip_public(trip_id));
+
+create policy "itinerary_items_public_select"
+on public.itinerary_items for select
+using (public.is_trip_public(trip_id));
 
 create or replace function public.invite_trip_member(
   target_trip_id uuid,
@@ -553,12 +577,14 @@ declare
   new_trip_id uuid := gen_random_uuid();
   new_day_id uuid;
   day_id_map jsonb := '{}'::jsonb;
+  has_private_access boolean := public.can_read_trip(source_trip_id);
+  can_copy_private_details boolean := false;
 begin
   if requester_id is null then
     raise exception 'Usuario no autenticado';
   end if;
 
-  if not public.can_read_trip(source_trip_id) then
+  if not has_private_access and not public.is_trip_public(source_trip_id) then
     raise exception 'No tienes permisos para leer este viaje';
   end if;
 
@@ -570,6 +596,8 @@ begin
   if source_trip.id is null then
     raise exception 'Viaje no encontrado';
   end if;
+
+  can_copy_private_details := has_private_access and not source_trip.is_public;
 
   select *
   into requester_profile
@@ -585,6 +613,7 @@ begin
     owner_id,
     title,
     status,
+    is_public,
     destinations,
     start_date,
     end_date,
@@ -602,6 +631,7 @@ begin
     requester_id,
     coalesce(nullif(trim(duplicate_title), ''), source_trip.title || ' (copia)'),
     source_trip.status,
+    false,
     source_trip.destinations,
     source_trip.start_date,
     source_trip.end_date,
@@ -618,6 +648,7 @@ begin
   insert into public.trip_members (trip_id, user_id, name, email, role)
   values (new_trip_id, requester_id, requester_profile.name, requester_profile.email, 'owner');
 
+  if can_copy_private_details then
   insert into public.flights (
     id,
     trip_id,
@@ -763,6 +794,7 @@ begin
     notes
   from public.accommodations
   where trip_id = source_trip_id;
+  end if;
 
   for source_day in
     select *
@@ -811,6 +843,7 @@ begin
   where trip_id = source_trip_id
   order by sort_order;
 
+  if can_copy_private_details then
   insert into public.activities (
     id,
     trip_id,
@@ -986,6 +1019,7 @@ begin
   from public.expenses
   where trip_id = source_trip_id
   order by date nulls last, description;
+  end if;
 
   return new_trip_id;
 end;

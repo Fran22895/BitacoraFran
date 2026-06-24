@@ -133,6 +133,7 @@ function tripToDb(draft: Partial<TripDraft> & { id?: string; ownerId?: string })
   addIfPresent(row, 'owner_id', draft.ownerId)
   addIfPresent(row, 'title', draft.title)
   addIfPresent(row, 'status', draft.status)
+  addIfPresent(row, 'is_public', draft.isPublic)
   addIfPresent(row, 'destinations', draft.destinations)
   addIfPresent(row, 'start_date', draft.startDate)
   addIfPresent(row, 'end_date', draft.endDate)
@@ -168,6 +169,7 @@ function tripFromDb(row: DbRecord): Omit<
     ownerId: text(row.owner_id),
     title: text(row.title),
     status: text(row.status, 'planned') as Trip['status'],
+    isPublic: booleanValue(row.is_public),
     destinations: stringArray(row.destinations),
     startDate: text(row.start_date),
     endDate: text(row.end_date),

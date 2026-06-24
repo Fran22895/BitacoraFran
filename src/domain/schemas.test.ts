@@ -16,6 +16,7 @@ describe('validaciones zod', () => {
     const parsed = tripFormSchema.safeParse({
       title: 'Islandia',
       status: 'planned',
+      isPublic: false,
       destinationsText: 'Reykjavik',
       startDate: '2027-01-01',
       endDate: '2027-01-10',

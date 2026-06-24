@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
 import { createId } from '../domain/ids'
+import { getUserRoleForTrip } from '../domain/permissions'
 import { demoProfile, seedTrips } from '../domain/seed'
 import type {
   Trip,
@@ -36,6 +37,7 @@ type AuthMode = 'demo' | 'remote' | null
 export interface TripDraft {
   title: string
   status: TripStatus
+  isPublic: boolean
   destinations: string[]
   startDate: string
   endDate: string
@@ -77,6 +79,7 @@ const TravelLogContext = createContext<TravelLogContextValue | undefined>(undefi
 function normalizeTrip(trip: Trip): Trip {
   return {
     ...trip,
+    isPublic: trip.isPublic ?? false,
     invitations: trip.invitations ?? [],
     restaurants: trip.restaurants ?? [],
   }
@@ -155,6 +158,7 @@ function duplicateTripForOwner(sourceTrip: Trip, owner: UserProfile): Trip {
   const tripId = createId('trip')
   const now = new Date().toISOString()
   const dayIdMap = new Map<string, string>()
+  const canCopyPrivateDetails = Boolean(getUserRoleForTrip(sourceTrip, owner)) && !sourceTrip.isPublic
   const ownerMember: TripMember = {
     id: createId('member'),
     tripId,
@@ -176,22 +180,29 @@ function duplicateTripForOwner(sourceTrip: Trip, owner: UserProfile): Trip {
     ...cloneValue(sourceTrip),
     id: tripId,
     title: `${sourceTrip.title} (copia)`,
+    isPublic: false,
     ownerId: owner.id,
     createdAt: now,
     updatedAt: now,
     members: [ownerMember],
     invitations: [],
-    flights: sourceTrip.flights.map((flight) => ({ ...cloneValue(flight), id: createId('flight'), tripId })),
-    vehicleRentals: sourceTrip.vehicleRentals.map((rental) => ({
-      ...cloneValue(rental),
-      id: createId('vehicle'),
-      tripId,
-    })),
-    accommodations: sourceTrip.accommodations.map((accommodation) => ({
-      ...cloneValue(accommodation),
-      id: createId('accommodation'),
-      tripId,
-    })),
+    flights: canCopyPrivateDetails
+      ? sourceTrip.flights.map((flight) => ({ ...cloneValue(flight), id: createId('flight'), tripId }))
+      : [],
+    vehicleRentals: canCopyPrivateDetails
+      ? sourceTrip.vehicleRentals.map((rental) => ({
+          ...cloneValue(rental),
+          id: createId('vehicle'),
+          tripId,
+        }))
+      : [],
+    accommodations: canCopyPrivateDetails
+      ? sourceTrip.accommodations.map((accommodation) => ({
+          ...cloneValue(accommodation),
+          id: createId('accommodation'),
+          tripId,
+        }))
+      : [],
     itineraryDays,
     itineraryItems: sourceTrip.itineraryItems.map((item) => ({
       ...cloneValue(item),
@@ -199,27 +210,41 @@ function duplicateTripForOwner(sourceTrip: Trip, owner: UserProfile): Trip {
       tripId,
       dayId: remapDayId(item.dayId) ?? fallbackDayId,
     })),
-    activities: sourceTrip.activities.map((activity) => ({
-      ...cloneValue(activity),
-      id: createId('activity'),
-      tripId,
-      dayId: remapDayId(activity.dayId),
-    })),
-    restaurants: sourceTrip.restaurants.map((restaurant) => ({
-      ...cloneValue(restaurant),
-      id: createId('restaurant'),
-      tripId,
-      dayId: remapDayId(restaurant.dayId) ?? fallbackDayId,
-    })),
-    contacts: sourceTrip.contacts.map((contact) => ({ ...cloneValue(contact), id: createId('contact'), tripId })),
-    insurances: sourceTrip.insurances.map((insurance) => ({
-      ...cloneValue(insurance),
-      id: createId('insurance'),
-      tripId,
-    })),
-    documents: sourceTrip.documents.map((document) => ({ ...cloneValue(document), id: createId('document'), tripId })),
-    journalEntries: sourceTrip.journalEntries.map((entry) => ({ ...cloneValue(entry), id: createId('journal'), tripId })),
-    expenses: sourceTrip.expenses.map((expense) => ({ ...cloneValue(expense), id: createId('expense'), tripId })),
+    activities: canCopyPrivateDetails
+      ? sourceTrip.activities.map((activity) => ({
+          ...cloneValue(activity),
+          id: createId('activity'),
+          tripId,
+          dayId: remapDayId(activity.dayId),
+        }))
+      : [],
+    restaurants: canCopyPrivateDetails
+      ? sourceTrip.restaurants.map((restaurant) => ({
+          ...cloneValue(restaurant),
+          id: createId('restaurant'),
+          tripId,
+          dayId: remapDayId(restaurant.dayId) ?? fallbackDayId,
+        }))
+      : [],
+    contacts: canCopyPrivateDetails
+      ? sourceTrip.contacts.map((contact) => ({ ...cloneValue(contact), id: createId('contact'), tripId }))
+      : [],
+    insurances: canCopyPrivateDetails
+      ? sourceTrip.insurances.map((insurance) => ({
+          ...cloneValue(insurance),
+          id: createId('insurance'),
+          tripId,
+        }))
+      : [],
+    documents: canCopyPrivateDetails
+      ? sourceTrip.documents.map((document) => ({ ...cloneValue(document), id: createId('document'), tripId }))
+      : [],
+    journalEntries: canCopyPrivateDetails
+      ? sourceTrip.journalEntries.map((entry) => ({ ...cloneValue(entry), id: createId('journal'), tripId }))
+      : [],
+    expenses: canCopyPrivateDetails
+      ? sourceTrip.expenses.map((expense) => ({ ...cloneValue(expense), id: createId('expense'), tripId }))
+      : [],
   }
 }
 
