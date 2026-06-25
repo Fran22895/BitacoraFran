@@ -218,14 +218,12 @@ function duplicateTripForOwner(sourceTrip: Trip, owner: UserProfile): Trip {
           dayId: remapDayId(activity.dayId),
         }))
       : [],
-    restaurants: canCopyPrivateDetails
-      ? sourceTrip.restaurants.map((restaurant) => ({
-          ...cloneValue(restaurant),
-          id: createId('restaurant'),
-          tripId,
-          dayId: remapDayId(restaurant.dayId) ?? fallbackDayId,
-        }))
-      : [],
+    restaurants: sourceTrip.restaurants.map((restaurant) => ({
+      ...cloneValue(restaurant),
+      id: createId('restaurant'),
+      tripId,
+      dayId: remapDayId(restaurant.dayId) ?? fallbackDayId,
+    })),
     contacts: canCopyPrivateDetails
       ? sourceTrip.contacts.map((contact) => ({ ...cloneValue(contact), id: createId('contact'), tripId }))
       : [],

@@ -61,13 +61,13 @@ Roles:
 - `reader`: solo consulta y exporta.
 
 Las funciones `can_read_trip`, `can_edit_trip`, `can_manage_trip` e `is_trip_public` centralizan las politicas RLS.
-Un viaje publico permite leer la cabecera del viaje y su itinerario (`itinerary_days`, `itinerary_items`) sin abrir vuelos, alojamiento, coche, contactos, seguros, documentos, diario ni gastos.
+Un viaje publico permite leer la cabecera del viaje, su itinerario (`itinerary_days`, `itinerary_items`) y restaurantes sin abrir vuelos, alojamiento, coche, contactos, seguros, documentos, diario ni gastos.
 
 ## Duplicado De Viajes Compartidos
 
 La funcion `duplicate_trip(source_trip_id, duplicate_title)` permite que cualquier usuario con lectura sobre un viaje cree una copia propia. La copia asigna al usuario autenticado como `owner`, nace como privada, no arrastra miembros ni invitaciones, y remapea los IDs de dias para conservar correctamente puntos de itinerario.
 
-Cuando el viaje es publico, el duplicado copia cabecera e itinerario. No copia vuelos, alojamientos, vehiculos, actividades con reservas, restaurantes con reservas, contactos, seguros, documentos, diario ni gastos. El duplicado completo se conserva para viajes privados donde el usuario ya tiene lectura por membresia.
+Cuando el viaje es publico, el duplicado copia cabecera, itinerario y restaurantes. No copia vuelos, alojamientos, vehiculos, actividades con reservas, contactos, seguros, documentos, diario ni gastos. El duplicado completo se conserva para viajes privados donde el usuario ya tiene lectura por membresia.
 
 ## Invitaciones Por Email
 

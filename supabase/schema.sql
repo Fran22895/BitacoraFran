@@ -415,6 +415,10 @@ create policy "itinerary_items_public_select"
 on public.itinerary_items for select
 using (public.is_trip_public(trip_id));
 
+create policy "restaurants_public_select"
+on public.restaurants for select
+using (public.is_trip_public(trip_id));
+
 create or replace function public.invite_trip_member(
   target_trip_id uuid,
   invite_email text,
@@ -843,6 +847,37 @@ begin
   where trip_id = source_trip_id
   order by sort_order;
 
+  insert into public.restaurants (
+    id,
+    trip_id,
+    day_id,
+    name,
+    cuisine,
+    location,
+    google_maps_url,
+    average_price,
+    has_reservation,
+    reservation_at,
+    booking_reference,
+    notes
+  )
+  select
+    gen_random_uuid(),
+    new_trip_id,
+    (day_id_map ->> day_id::text)::uuid,
+    name,
+    cuisine,
+    location,
+    google_maps_url,
+    average_price,
+    has_reservation,
+    reservation_at,
+    booking_reference,
+    notes
+  from public.restaurants
+  where trip_id = source_trip_id
+  order by reservation_at nulls last, name;
+
   if can_copy_private_details then
   insert into public.activities (
     id,
@@ -876,37 +911,6 @@ begin
   from public.activities
   where trip_id = source_trip_id
   order by starts_at nulls last, name;
-
-  insert into public.restaurants (
-    id,
-    trip_id,
-    day_id,
-    name,
-    cuisine,
-    location,
-    google_maps_url,
-    average_price,
-    has_reservation,
-    reservation_at,
-    booking_reference,
-    notes
-  )
-  select
-    gen_random_uuid(),
-    new_trip_id,
-    (day_id_map ->> day_id::text)::uuid,
-    name,
-    cuisine,
-    location,
-    google_maps_url,
-    average_price,
-    has_reservation,
-    reservation_at,
-    booking_reference,
-    notes
-  from public.restaurants
-  where trip_id = source_trip_id
-  order by reservation_at nulls last, name;
 
   insert into public.contacts (
     id,
