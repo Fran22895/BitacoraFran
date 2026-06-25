@@ -28,6 +28,7 @@ import {
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AppShell } from '../../components/AppShell'
+import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog'
 import { StatTile } from '../../components/StatTile'
 import { TripFormDialog } from '../../components/TripFormDialog'
 import { findMissingData, calculateTripTotals, formatMoney, getTripDateRangeLabel, sortTripsByRecent } from '../../domain/calculations'
@@ -46,6 +47,7 @@ export function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState<TripStatus | typeof allStatuses>(allStatuses)
   const [search, setSearch] = useState('')
   const [tagFilter, setTagFilter] = useState('')
+  const [deletingTrip, setDeletingTrip] = useState<Trip | null>(null)
 
   const allTags = useMemo(() => Array.from(new Set(trips.flatMap((trip) => trip.tags))).sort(), [trips])
   const visibleTrips = useMemo(() => {
@@ -97,6 +99,13 @@ export function DashboardPage() {
     void duplicateTrip(trip.id)
       .then((duplicatedTrip) => navigate(`/trips/${duplicatedTrip.id}`))
       .catch(() => undefined)
+  }
+
+  const confirmDeleteTrip = () => {
+    if (!deletingTrip) return
+
+    deleteTrip(deletingTrip.id)
+    setDeletingTrip(null)
   }
 
   return (
@@ -240,7 +249,7 @@ export function DashboardPage() {
                     )}
                     {permissions.canDeleteTrip && (
                       <Tooltip title="Eliminar viaje">
-                        <IconButton color="error" onClick={() => deleteTrip(trip.id)} aria-label="Eliminar viaje">
+                        <IconButton color="error" onClick={() => setDeletingTrip(trip)} aria-label="Eliminar viaje">
                           <DeleteIcon />
                         </IconButton>
                       </Tooltip>
@@ -267,6 +276,14 @@ export function DashboardPage() {
         trip={editingTrip}
         onClose={() => setTripDialogOpen(false)}
         onSave={handleSaveTrip}
+      />
+      <ConfirmDeleteDialog
+        open={Boolean(deletingTrip)}
+        title="Eliminar viaje"
+        description={`Vas a eliminar "${deletingTrip?.title ?? 'este viaje'}". Esta accion no se puede deshacer.`}
+        confirmLabel="Eliminar viaje"
+        onCancel={() => setDeletingTrip(null)}
+        onConfirm={confirmDeleteTrip}
       />
     </AppShell>
   )

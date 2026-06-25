@@ -40,6 +40,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useEffect, useMemo, useRef, useState, type ElementType, type ReactNode } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import type { z } from 'zod'
+import { ConfirmDeleteDialog } from './ConfirmDeleteDialog'
 
 type EntityValues = Record<string, unknown>
 
@@ -185,6 +186,7 @@ export function EntitySection<T extends { id: string }>({
 }: EntitySectionProps<T>) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<T | null>(null)
+  const [deletingItem, setDeletingItem] = useState<T | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const resetKeyRef = useRef<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
@@ -248,6 +250,13 @@ export function EntitySection<T extends { id: string }>({
     onReorder(arrayMove(ids, oldIndex, newIndex))
   }
 
+  const confirmDelete = () => {
+    if (!deletingItem) return
+
+    onDelete(deletingItem.id)
+    setDeletingItem(null)
+  }
+
   const renderCard = (item: T, dragHandle?: ReactNode) => {
     const itemCanEdit = canEdit && (canEditItem?.(item) ?? true)
     const itemCanDelete = canEdit && (canDeleteItem?.(item) ?? true)
@@ -269,7 +278,7 @@ export function EntitySection<T extends { id: string }>({
                 )}
                 {itemCanDelete && (
                   <Tooltip title="Eliminar">
-                    <IconButton size="small" color="error" onClick={() => onDelete(item.id)} aria-label="Eliminar">
+                    <IconButton size="small" color="error" onClick={() => setDeletingItem(item)} aria-label="Eliminar">
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -435,6 +444,14 @@ export function EntitySection<T extends { id: string }>({
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ConfirmDeleteDialog
+        open={Boolean(deletingItem)}
+        title={`Eliminar ${title.toLowerCase()}`}
+        description={`Vas a eliminar este elemento de "${title}". Esta accion no se puede deshacer.`}
+        onCancel={() => setDeletingItem(null)}
+        onConfirm={confirmDelete}
+      />
     </Paper>
   )
 }

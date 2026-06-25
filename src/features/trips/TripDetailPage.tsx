@@ -34,6 +34,7 @@ import {
 import { Suspense, lazy, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AppShell } from '../../components/AppShell'
+import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog'
 import { EntitySection, type FieldConfig } from '../../components/EntitySection'
 import { StatTile } from '../../components/StatTile'
 import { TripFormDialog } from '../../components/TripFormDialog'
@@ -309,6 +310,7 @@ export function TripDetailPage() {
   const trip = trips.find((candidate) => candidate.id === tripId)
   const [tab, setTab] = useState(0)
   const [tripDialogOpen, setTripDialogOpen] = useState(false)
+  const [deleteTripDialogOpen, setDeleteTripDialogOpen] = useState(false)
   const [showAllIssues, setShowAllIssues] = useState(false)
 
   const permissions = trip ? getPermissionsForTrip(trip, profile) : undefined
@@ -398,6 +400,7 @@ export function TripDetailPage() {
   }
 
   const removeTrip = () => {
+    setDeleteTripDialogOpen(false)
     deleteTrip(trip.id)
     navigate('/')
   }
@@ -460,7 +463,7 @@ export function TripDetailPage() {
                 Duplicar
               </Button>
               {permissions.canDeleteTrip && (
-                <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={removeTrip}>
+                <Button variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={() => setDeleteTripDialogOpen(true)}>
                   Eliminar
                 </Button>
               )}
@@ -1097,6 +1100,14 @@ export function TripDetailPage() {
         trip={trip}
         onClose={() => setTripDialogOpen(false)}
         onSave={saveTrip}
+      />
+      <ConfirmDeleteDialog
+        open={deleteTripDialogOpen}
+        title="Eliminar viaje"
+        description={`Vas a eliminar "${trip.title}". Esta accion no se puede deshacer.`}
+        confirmLabel="Eliminar viaje"
+        onCancel={() => setDeleteTripDialogOpen(false)}
+        onConfirm={removeTrip}
       />
     </AppShell>
   )
